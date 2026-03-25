@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)",
+      "Bash(npm install:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''prisma version:'''', d.get\\(''''devDependencies'''',{}\\).get\\(''''prisma'''',''''not found''''\\), d.get\\(''''dependencies'''',{}\\).get\\(''''@prisma/client'''',''''not found''''\\)\\)\")",
+      "Bash(node -e \"require\\(''''dotenv''''\\)\")"
+    ]
+  }
+}
