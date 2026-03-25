@@ -70,6 +70,17 @@ export type MovimentacaoDetalhe = {
   criadoEm: string
 }
 
+export type AnaliseIaDetalhe = {
+  id: string
+  status: string          // 'EM_PROCESSAMENTO' | 'CONCLUIDO' | 'ERRO'
+  tipoAnalise: string
+  modeloUtilizado: string | null
+  promptVersao: string | null
+  resultadoJson: unknown  // AnaliseIaResult quando status='CONCLUIDO'
+  resumoTexto: string | null
+  criadoEm: string
+} | null
+
 export type LicitacaoDetalhe = {
   id: string
   orgao: string | null
@@ -116,4 +127,5 @@ export type LicitacaoDetalhe = {
   itens: ItemDetalhe[]
   analise: AnaliseDetalhe
   movimentacoes: MovimentacaoDetalhe[]
+  analiseIa: AnaliseIaDetalhe
 }
