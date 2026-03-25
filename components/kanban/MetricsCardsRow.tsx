@@ -17,7 +17,7 @@ export function MetricsCardsRow({ metricas }: Props) {
       {CARDS.map(({ key, label, icon: Icon, color }) => (
         <div
           key={key}
-          className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 shadow-sm border-t-2 border-t-[#1D4ED8]"
+          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm border-t-2 border-t-[#1D4ED8]"
         >
           <Icon className={`h-4 w-4 ${color}`} />
           <div>
