@@ -7,6 +7,7 @@ import { DocumentosTab } from '@/components/licitacao/tabs/DocumentosTab'
 import { ItensTab } from '@/components/licitacao/tabs/ItensTab'
 import { AnaliseForm } from '@/components/licitacao/tabs/AnaliseForm'
 import { HistoricoTab } from '@/components/licitacao/tabs/HistoricoTab'
+import { IaTab } from '@/components/licitacao/tabs/IaTab'
 import { db } from '@/lib/db'
 import type { LicitacaoDetalhe } from '@/types/licitacao-detalhe'
 
@@ -23,6 +24,10 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
       documentos: true,
       itens: { orderBy: { criadoEm: 'asc' } },
       analise: true,
+      analisesIa: {
+        orderBy: { criadoEm: 'desc' },
+        take: 1,
+      },
     },
   })
 
@@ -107,6 +112,18 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
       automatico: m.automatico,
       criadoEm: m.criadoEm.toISOString(),
     })),
+    analiseIa: row.analisesIa[0]
+      ? {
+          id: row.analisesIa[0].id,
+          status: row.analisesIa[0].status,
+          tipoAnalise: row.analisesIa[0].tipoAnalise,
+          modeloUtilizado: row.analisesIa[0].modeloUtilizado,
+          promptVersao: row.analisesIa[0].promptVersao,
+          resultadoJson: row.analisesIa[0].resultadoJson,
+          resumoTexto: row.analisesIa[0].resumoTexto,
+          criadoEm: row.analisesIa[0].criadoEm.toISOString(),
+        }
+      : null,
   }
 }
 
@@ -148,7 +165,9 @@ export default async function LicitacaoDetalhePage({ params, searchParams }: Pag
           {activeTab === 'historico' && (
             <HistoricoTab movimentacoes={licitacao.movimentacoes} />
           )}
-          {activeTab === 'ia' && <PlaceholderTab feature="SP-4" />}
+          {activeTab === 'ia' && (
+            <IaTab licitacaoId={id} analiseIa={licitacao.analiseIa} />
+          )}
           {activeTab === 'score' && <PlaceholderTab feature="SP-5" />}
           {activeTab === 'parecer' && <PlaceholderTab feature="SP-5" />}
         </div>
