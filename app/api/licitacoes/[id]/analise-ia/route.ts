@@ -4,6 +4,8 @@ import { getLlmProvider } from '@/lib/llm/factory'
 import { SYSTEM_PROMPT, buildUserPrompt, type AnaliseIaResult } from '@/lib/llm/prompts/analise-completa'
 import type { LicitacaoDetalhe } from '@/types/licitacao-detalhe'
 import type { LlmProvider } from '@/lib/llm/provider'
+import type { LicitacaoItemModel } from '@/lib/generated/prisma/models/LicitacaoItem'
+import type { KanbanMovimentacaoModel } from '@/lib/generated/prisma/models/KanbanMovimentacao'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -90,8 +92,16 @@ export async function processAnalise(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function serializeForPrompt(row: any): LicitacaoDetalhe {
+type LicitacaoWithRelations = Awaited<ReturnType<typeof db.licitacao.findUniqueOrThrow>> & {
+  card: Awaited<ReturnType<typeof db.kanbanCard.findFirst>>
+  itens: LicitacaoItemModel[]
+  analise: Awaited<ReturnType<typeof db.licitacaoAnalise.findFirst>>
+  documentos: Awaited<ReturnType<typeof db.licitacaoDocumento.findFirst>>
+  score: Awaited<ReturnType<typeof db.licitacaoScore.findFirst>>
+  movimentacoes: KanbanMovimentacaoModel[]
+}
+
+function serializeForPrompt(row: LicitacaoWithRelations): LicitacaoDetalhe {
   return {
     ...row,
     dataPublicacao: row.dataPublicacao?.toISOString() ?? null,
@@ -117,7 +127,7 @@ function serializeForPrompt(row: any): LicitacaoDetalhe {
         }
       : null,
     documentos: row.documentos ?? null,
-    itens: row.itens.map((item: any) => ({
+    itens: row.itens.map((item: LicitacaoItemModel) => ({
       id: item.id,
       tipo: item.tipo,
       identificador: item.identificador,
@@ -129,8 +139,14 @@ function serializeForPrompt(row: any): LicitacaoDetalhe {
       valorEstimadoItem: item.valorEstimadoItem ? Number(item.valorEstimadoItem) : null,
       observacoes: item.observacoes,
     })),
-    analise: row.analise ?? null,
-    movimentacoes: row.movimentacoes.map((m: any) => ({
+    analise: row.analise
+      ? {
+          ...row.analise,
+          portfolioAplicavel: (row.analise.portfolioAplicavel as unknown[]) ?? [],
+          solucoesMuliteinerAplicaveis: (row.analise.solucoesMuliteinerAplicaveis as unknown[]) ?? [],
+        }
+      : null,
+    movimentacoes: row.movimentacoes.map((m: KanbanMovimentacaoModel) => ({
       id: m.id,
       colunaOrigem: m.colunaOrigem ?? null,
       colunaDestino: m.colunaDestino,
