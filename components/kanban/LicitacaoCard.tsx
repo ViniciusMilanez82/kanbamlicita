@@ -2,6 +2,7 @@ import { AlertTriangle, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { CardQuickActions } from './CardQuickActions'
 import type { LicitacaoComCard } from '@/types/licitacao'
+import { formatCurrency, formatDate } from '@/lib/format'
 
 type Props = {
   licitacao: LicitacaoComCard
@@ -24,17 +25,6 @@ const FAIXA_CARD_BG: Record<string, string> = {
   D:   'bg-red-50 border-red-200',
 }
 
-function formatCurrency(value: number | null): string {
-  if (value === null) return '—'
-  if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(1)}M`
-  if (value >= 1_000) return `R$ ${(value / 1_000).toFixed(0)}K`
-  return `R$ ${value}`
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
 
 export function LicitacaoCard({ licitacao, onMover }: Props) {
   const { card, score } = licitacao
