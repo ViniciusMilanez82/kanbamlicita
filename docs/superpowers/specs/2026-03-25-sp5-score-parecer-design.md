@@ -44,24 +44,27 @@ Implementar as abas **score** e **parecer** na página de detalhe da licitação
 
 ### Escala por componente (0–100)
 
+> **Valores canônicos de nível** (exatamente como o `AnaliseForm` salva no banco):
+> `'alta'`, `'média'` (com acento), `'baixa'`, `'nenhuma'`
+
 **scoreAderenciaDireta** — fonte: `analise.aderenciaDiretaNivel` (se `aderenciaDiretaExiste`)
-- alta → 100, media → 60, baixa → 30, nenhuma/não existe → 0
+- `'alta'` → 100, `'média'` → 60, `'baixa'` → 30, `'nenhuma'`/não existe → 0
 
 **scoreAderenciaAplicacao** — fonte: `analise.aderenciaAplicacaoNivel` (se `aderenciaAplicacaoExiste`)
 - mesma escala
 
 **scoreContextoOculto** — fonte: `analise.contextoOcultoNivel` (se `contextoOcultoExiste`)
-- alto → 100, medio → 60 (usar "medio"), baixo → 30, nenhuma/não existe → 0
+- `'alta'` → 100, `'média'` → 60, `'baixa'` → 30, `'nenhuma'`/não existe → 0
 
 **scoreModeloComercial** — fonte: `analise` (oportunidades ativas)
 - conta: oportunidadeNoObjeto, oportunidadeNoTr, oportunidadeNosLotes, oportunidadeNosItens, oportunidadeNaPlanilha, oportunidadeNoMemorial, oportunidadeEmAnexoTecnico
 - score = (quantidade ativa / 7) × 100
 
-**scorePotencialEconomico** — fonte: `analiseIa.resultadoJson.aderencia.nivel`
-- alta → 100, media → 60, baixa → 30, nenhuma → 0
+**scorePotencialEconomico** — fonte: `analiseIa.resultadoJson.aderencia.nivel` (quando `analiseIa.status === 'CONCLUIDO'`)
+- `'alta'` → 100, `'media'` → 60, `'baixa'` → 30, `'nenhuma'` → 0; se `analiseIa` nulo ou não CONCLUIDO → 0
 
 **scoreQualidadeEvidencia** — fonte: `analiseIa.resultadoJson.confianca`
-- alta → 100, media → 60, baixa → 30
+- `'alta'` → 100, `'media'` → 60, `'baixa'` → 30; se `analiseIa` nulo ou não CONCLUIDO → 0
 
 ### Faixas de classificação (conforme documentação)
 
@@ -113,6 +116,7 @@ export type ScoreDetalhe = {
   scorePotencialEconomico: number
   scoreQualidadeEvidencia: number
   scoreJustificativaResumida: string | null
+  valorCapturavelObrigatorioPreenchido: boolean
   valorCapturavelFoiPossivelEstimar: boolean
   valorCapturavelEstimado: number | null
   valorCapturavelFaixaMin: number | null
@@ -123,6 +127,7 @@ export type ScoreDetalhe = {
   valorCapturavelJustificativa: string
   valorCapturavelBaseDocumental: unknown[]
   valorCapturavelObservacao: string | null
+  falsoNegativoObrigatorioPreenchido: boolean
   falsoNegativoExisteRisco: boolean
   falsoNegativoNivelRisco: string
   falsoNegativoMotivos: unknown[]
@@ -166,14 +171,14 @@ export type ParecerDetalhe = {
 Padrão idêntico ao `/analise/route.ts`:
 - Verificar se licitação existe (404 se não)
 - Remover `id`, `licitacaoId`, `criadoEm`, `atualizadoEm` do body
-- `db.licitacaoScore.upsert({ where: { licitacaoId }, create: ..., update: ... })`
+- `db.licitacaoScore.upsert({ where: { licitacaoId }, create: { licitacaoId: id, ...data }, update: { ...data } })`
 - Retorna `{ score }`
 
 ### PUT `/api/licitacoes/[id]/parecer/route.ts`
 
 Mesmo padrão:
-- Modelo Prisma: `licitacaoParece` (nome do modelo no schema — typo original)
-- `db.licitacaoParece.upsert({ where: { licitacaoId }, create: ..., update: ... })`
+- Modelo Prisma: `licitacaoParece` (nome do modelo no schema — typo original, sem 'r' no final)
+- `db.licitacaoParece.upsert({ where: { licitacaoId }, create: { licitacaoId: id, ...data }, update: { ...data } })`
 - Retorna `{ parecer }`
 
 ---
@@ -230,12 +235,12 @@ Client Component (`'use client'`). Props: `licitacaoId`, `parecer: ParecerDetalh
 
 ### `__tests__/lib/score/calculator.test.ts`
 
-Testa `calcularScore` com casos:
-1. Análise completa + IA completa → score correto com pesos
-2. Análise nula → score zerado
-3. IA nula → scorePotencialEconomico e scoreQualidadeEvidencia = 0
-4. Todos alta/alta → faixa A+
-5. Todos baixo → faixa D
+Testa `calcularScore(analise, analiseIaResult)` com casos:
+1. `analise` completa (todos alta) + `analiseIaResult` completo (alta/alta) → score correto com pesos, faixa A+
+2. `analise = null` + `analiseIaResult = null` → todos componentes = 0, scoreFinal = 0, faixa D
+3. `analise` populada (alta em todos os campos) + `analiseIaResult = null` → scorePotencialEconomico = 0, scoreQualidadeEvidencia = 0, outros corretos
+4. `analise = null` + `analiseIaResult` populado (alta/alta) → 4 primeiros componentes = 0, scorePotencialEconomico e scoreQualidadeEvidencia corretos
+5. `analise` completa (todos baixa) + `analiseIaResult` completo (baixa/baixa) → faixa D
 
 ---
 
