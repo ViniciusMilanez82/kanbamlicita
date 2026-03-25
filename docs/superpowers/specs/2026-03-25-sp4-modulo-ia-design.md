@@ -340,7 +340,9 @@ function serializeForPrompt(row: any): LicitacaoDetalhe {
 
 ## Tipo Serializado
 
-Adicionar em `types/licitacao-detalhe.ts`:
+Duas alterações em `types/licitacao-detalhe.ts`:
+
+**1. Novo tipo `AnaliseIaDetalhe`** (adicionar antes de `LicitacaoDetalhe`):
 
 ```ts
 export type AnaliseIaDetalhe = {
@@ -353,6 +355,13 @@ export type AnaliseIaDetalhe = {
   resumoTexto: string | null
   criadoEm: string
 } | null
+```
+
+**2. Adicionar campo `analiseIa` em `LicitacaoDetalhe`** (junto às demais relações no fim do tipo):
+
+```ts
+  // ao final de LicitacaoDetalhe, após movimentacoes:
+  analiseIa: AnaliseIaDetalhe
 ```
 
 ---
