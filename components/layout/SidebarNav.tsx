@@ -16,9 +16,9 @@ export function SidebarNav() {
   const pathname = usePathname()
 
   return (
-    <aside className="flex w-56 flex-col border-r bg-white">
-      <div className="flex h-14 items-center border-b px-4">
-        <span className="text-sm font-bold tracking-tight text-slate-900">
+    <aside className="flex w-56 flex-col bg-[#0F172A]">
+      <div className="flex h-14 items-center border-b border-slate-800 px-4">
+        <span className="text-sm font-bold tracking-tight text-white">
           KanbanLicita
         </span>
       </div>
@@ -30,8 +30,8 @@ export function SidebarNav() {
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
               pathname === href
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-[#1D4ED8] text-white'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             )}
           >
             <Icon className="h-4 w-4" />
