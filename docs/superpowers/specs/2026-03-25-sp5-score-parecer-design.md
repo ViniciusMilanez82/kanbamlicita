@@ -156,11 +156,64 @@ export type ParecerDetalhe = {
 
 > Campos JSON (`ondeEstaOportunidade`, `solucoesQueMultiteinerPoderiaOfertar`, `proximoPasosRecomendado`, `riscosLimitacoes`, `evidenciasPrincipais`) são excluídos desta fase — SP futuro.
 
-`LicitacaoDetalhe` recebe dois novos campos:
+`LicitacaoDetalhe` recebe o campo `parecer` (ao lado de `score` já existente):
 ```ts
-  parecer: ParecerDetalhe
+  score: ScoreDetalhe        // já existe — será re-serializado com todos os campos
+  parecer: ParecerDetalhe    // novo
 ```
-(score já existe, mas será re-serializado com todos os campos)
+
+### Serialização em `page.tsx`
+
+**Score** — todos os campos Decimal devem ser convertidos com `Number()`:
+```ts
+score: row.score ? {
+  scoreFinal: Number(row.score.scoreFinal),
+  faixaClassificacao: row.score.faixaClassificacao,
+  scoreAderenciaDireta: Number(row.score.scoreAderenciaDireta),
+  scoreAderenciaAplicacao: Number(row.score.scoreAderenciaAplicacao),
+  scoreContextoOculto: Number(row.score.scoreContextoOculto),
+  scoreModeloComercial: Number(row.score.scoreModeloComercial),
+  scorePotencialEconomico: Number(row.score.scorePotencialEconomico),
+  scoreQualidadeEvidencia: Number(row.score.scoreQualidadeEvidencia),
+  scoreJustificativaResumida: row.score.scoreJustificativaResumida,
+  valorCapturavelObrigatorioPreenchido: row.score.valorCapturavelObrigatorioPreenchido,
+  valorCapturavelFoiPossivelEstimar: row.score.valorCapturavelFoiPossivelEstimar,
+  valorCapturavelEstimado: row.score.valorCapturavelEstimado ? Number(row.score.valorCapturavelEstimado) : null,
+  valorCapturavelFaixaMin: row.score.valorCapturavelFaixaMin ? Number(row.score.valorCapturavelFaixaMin) : null,
+  valorCapturavelFaixaMax: row.score.valorCapturavelFaixaMax ? Number(row.score.valorCapturavelFaixaMax) : null,
+  valorCapturavelMoeda: row.score.valorCapturavelMoeda,
+  valorCapturavelNivelConfianca: row.score.valorCapturavelNivelConfianca,
+  valorCapturavelMetodoEstimativa: row.score.valorCapturavelMetodoEstimativa,
+  valorCapturavelJustificativa: row.score.valorCapturavelJustificativa,
+  valorCapturavelBaseDocumental: row.score.valorCapturavelBaseDocumental as unknown[],
+  valorCapturavelObservacao: row.score.valorCapturavelObservacao,
+  falsoNegativoObrigatorioPreenchido: row.score.falsoNegativoObrigatorioPreenchido,
+  falsoNegativoExisteRisco: row.score.falsoNegativoExisteRisco,
+  falsoNegativoNivelRisco: row.score.falsoNegativoNivelRisco,
+  falsoNegativoMotivos: row.score.falsoNegativoMotivos as unknown[],
+  falsoNegativoTrechosCriticos: row.score.falsoNegativoTrechosCriticos as unknown[],
+  falsoNegativoResumo: row.score.falsoNegativoResumo,
+} : null,
+```
+
+**Parecer** — todos os campos são escalares (sem Decimal), mapeamento 1:1:
+```ts
+parecer: row.parecer ? {
+  classificacaoFinal: row.parecer.classificacaoFinal,
+  prioridadeComercial: row.parecer.prioridadeComercial,
+  valeEsforcoComercial: row.parecer.valeEsforcoComercial,
+  recomendacaoFinal: row.parecer.recomendacaoFinal,
+  resumo: row.parecer.resumo,
+  oportunidadeDireta: row.parecer.oportunidadeDireta,
+  oportunidadeIndireta: row.parecer.oportunidadeIndireta,
+  oportunidadeOcultaItemLoteAnexo: row.parecer.oportunidadeOcultaItemLoteAnexo,
+  oportunidadeInexistente: row.parecer.oportunidadeInexistente,
+  riscoFalsoPositivo: row.parecer.riscoFalsoPositivo,
+  riscoFalsoNegativoSoTitulo: row.parecer.riscoFalsoNegativoSoTitulo,
+} : null,
+```
+
+O include do Prisma deve ter `score: true` (já presente) e `parecer: true` (adicionar).
 
 ---
 
@@ -219,7 +272,7 @@ Client Component (`'use client'`). Props: `licitacaoId`, `score: ScoreDetalhe`, 
 
 Client Component (`'use client'`). Props: `licitacaoId`, `parecer: ParecerDetalhe`, `score: ScoreDetalhe`.
 
-- Select classificação final (A+/A/B/C/D) — pré-preenchido com `score.faixaClassificacao` se parecer nulo
+- Select classificação final (A+/A/B/C/D) — pré-preenchido com `score?.faixaClassificacao ?? 'D'` se parecer nulo
 - Select prioridade comercial (alta/media/baixa)
 - Toggle vale esforço comercial?
 - Select recomendação final (AVANCAR/ACOMPANHAR/DESCARTAR)
