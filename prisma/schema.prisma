@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -10,4 +5,359 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─── Enum de colunas do Kanban ────────────────────────────────────────────────
+enum KanbanColuna {
+  captadas_automaticamente
+  triagem_inicial
+  em_analise
+  viavel_comercialmente
+  proposta_documentacao
+  enviadas_participando
+  ganhamos
+  perdemos
+  descartadas
+}
+
+// ─── Entidade principal ───────────────────────────────────────────────────────
+model Licitacao {
+  id                         String    @id @default(uuid())
+  idExterno                  String?   @map("id_externo") @db.VarChar(120)
+  fonteCaptacao              String?   @map("fonte_captacao") @db.VarChar(50)
+  linkOrigem                 String?   @map("link_origem")
+  orgao                      String?
+  numeroLicitacao            String?   @map("numero_licitacao") @db.VarChar(120)
+  numeroProcesso             String?   @map("numero_processo") @db.VarChar(120)
+  modalidade                 String?   @db.VarChar(80)
+  tipoDisputa                String?   @map("tipo_disputa") @db.VarChar(80)
+  criterioJulgamento         String?   @map("criterio_julgamento") @db.VarChar(120)
+  objetoResumido             String?   @map("objeto_resumido")
+  segmento                   String?   @db.VarChar(80)
+  dataPublicacao             DateTime? @map("data_publicacao") @db.Date
+  dataSessao                 DateTime? @map("data_sessao")
+  uf                         String?   @db.Char(2)
+  municipio                  String?   @db.VarChar(120)
+  regiao                     String?   @db.VarChar(50)
+  valorGlobalEstimado        Decimal?  @map("valor_global_estimado") @db.Decimal(18, 2)
+  moeda                      String    @default("BRL") @db.Char(3)
+  possuiLotes                Boolean   @default(false) @map("possui_lotes")
+  possuiItens                Boolean   @default(false) @map("possui_itens")
+  possuiPlanilhaOrcamentaria Boolean   @default(false) @map("possui_planilha_orcamentaria")
+  possuiQuantitativos        Boolean   @default(false) @map("possui_quantitativos")
+  possuiPrecosUnitarios      Boolean   @default(false) @map("possui_precos_unitarios")
+  envolveLocacao             Boolean   @default(false) @map("envolve_locacao")
+  envolveFornecimento        Boolean   @default(false) @map("envolve_fornecimento")
+  envolveServico             Boolean   @default(false) @map("envolve_servico")
+  envolveObra                Boolean   @default(false) @map("envolve_obra")
+  envolveInstalacao          Boolean   @default(false) @map("envolve_instalacao")
+  envolveMontagem            Boolean   @default(false) @map("envolve_montagem")
+  envolveDesmontagem         Boolean   @default(false) @map("envolve_desmontagem")
+  envolveTransporte          Boolean   @default(false) @map("envolve_transporte")
+  envolveMobilizacao         Boolean   @default(false) @map("envolve_mobilizacao")
+  envolveDesmobilizacao      Boolean   @default(false) @map("envolve_desmobilizacao")
+  envolveManutencao          Boolean   @default(false) @map("envolve_manutencao")
+  resumoNatureza             String?   @map("resumo_natureza")
+  statusPipeline             String    @default("pendente") @map("status_pipeline") @db.VarChar(40)
+  criadoEm                   DateTime  @default(now()) @map("criado_em")
+  atualizadoEm               DateTime  @updatedAt @map("atualizado_em")
+
+  card              KanbanCard?
+  movimentacoes     KanbanMovimentacao[]
+  score             LicitacaoScore?
+  documentos        LicitacaoDocumento?
+  sinais            LicitacaoSinal[]
+  itens             LicitacaoItem[]
+  analise           LicitacaoAnalise?
+  parecer           LicitacaoParece?
+  analisesIa        LicitacaoAnaliseIa[]
+  aliasesOrigem     LicitacaoAliasOrigem[]
+
+  @@map("licitacoes")
+}
+
+// ─── Kanban ───────────────────────────────────────────────────────────────────
+model KanbanCard {
+  id             String       @id @default(uuid())
+  licitacaoId    String       @unique @map("licitacao_id")
+  colunaAtual    KanbanColuna @map("coluna_atual")
+  ordemColuna    Int          @default(0) @map("ordem_coluna")
+  responsavelId  String?      @map("responsavel_id")
+  urgente        Boolean      @default(false)
+  bloqueado      Boolean      @default(false)
+  motivoBloqueio String?      @map("motivo_bloqueio")
+  criadoEm       DateTime     @default(now()) @map("criado_em")
+  atualizadoEm   DateTime     @updatedAt @map("atualizado_em")
+
+  licitacao     Licitacao            @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  movimentacoes KanbanMovimentacao[]
+
+  @@map("kanban_cards")
+}
+
+model KanbanMovimentacao {
+  id            String        @id @default(uuid())
+  cardId        String        @map("card_id")
+  licitacaoId   String        @map("licitacao_id")
+  colunaOrigem  KanbanColuna? @map("coluna_origem")
+  colunaDestino KanbanColuna  @map("coluna_destino")
+  movidoPor     String?       @map("movido_por")
+  motivo        String?
+  automatico    Boolean       @default(false)
+  criadoEm      DateTime      @default(now()) @map("criado_em")
+
+  card      KanbanCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  licitacao Licitacao  @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("kanban_movimentacoes")
+}
+
+// ─── Score, valor capturável e falso negativo ─────────────────────────────────
+model LicitacaoScore {
+  id                                   String   @id @default(uuid())
+  licitacaoId                          String   @unique @map("licitacao_id")
+  scoreFinal                           Decimal  @default(0) @map("score_final") @db.Decimal(5, 2)
+  faixaClassificacao                   String   @default("D") @map("faixa_classificacao") @db.VarChar(5)
+  scoreAderenciaDireta                 Decimal  @default(0) @map("score_aderencia_direta") @db.Decimal(5, 2)
+  scoreAderenciaAplicacao              Decimal  @default(0) @map("score_aderencia_aplicacao") @db.Decimal(5, 2)
+  scoreContextoOculto                  Decimal  @default(0) @map("score_contexto_oculto") @db.Decimal(5, 2)
+  scoreModeloComercial                 Decimal  @default(0) @map("score_modelo_comercial") @db.Decimal(5, 2)
+  scorePotencialEconomico              Decimal  @default(0) @map("score_potencial_economico") @db.Decimal(5, 2)
+  scoreQualidadeEvidencia              Decimal  @default(0) @map("score_qualidade_evidencia") @db.Decimal(5, 2)
+  scoreJustificativaResumida           String?  @map("score_justificativa_resumida")
+  valorCapturavelObrigatorioPreenchido Boolean  @default(true) @map("valor_capturavel_obrigatorio_preenchido")
+  valorCapturavelFoiPossivelEstimar    Boolean  @default(false) @map("valor_capturavel_foi_possivel_estimar")
+  valorCapturavelEstimado              Decimal? @map("valor_capturavel_estimado") @db.Decimal(18, 2)
+  valorCapturavelFaixaMin              Decimal? @map("valor_capturavel_faixa_min") @db.Decimal(18, 2)
+  valorCapturavelFaixaMax              Decimal? @map("valor_capturavel_faixa_max") @db.Decimal(18, 2)
+  valorCapturavelMoeda                 String   @default("BRL") @map("valor_capturavel_moeda") @db.Char(3)
+  valorCapturavelNivelConfianca        String   @default("baixo") @map("valor_capturavel_nivel_confianca") @db.VarChar(20)
+  valorCapturavelMetodoEstimativa      String   @default("nao_estimado") @map("valor_capturavel_metodo_estimativa") @db.VarChar(50)
+  valorCapturavelJustificativa         String   @default("") @map("valor_capturavel_justificativa")
+  valorCapturavelBaseDocumental        Json     @default("[]") @map("valor_capturavel_base_documental")
+  valorCapturavelObservacao            String?  @map("valor_capturavel_observacao")
+  falsoNegativoObrigatorioPreenchido   Boolean  @default(true) @map("falso_negativo_obrigatorio_preenchido")
+  falsoNegativoExisteRisco             Boolean  @default(false) @map("falso_negativo_existe_risco")
+  falsoNegativoNivelRisco              String   @default("baixo") @map("falso_negativo_nivel_risco") @db.VarChar(20)
+  falsoNegativoMotivos                 Json     @default("[]") @map("falso_negativo_motivos")
+  falsoNegativoTrechosCriticos         Json     @default("[]") @map("falso_negativo_trechos_criticos")
+  falsoNegativoResumo                  String   @default("") @map("falso_negativo_resumo")
+  criadoEm                             DateTime @default(now()) @map("criado_em")
+  atualizadoEm                         DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_score")
+}
+
+// ─── Documentos ───────────────────────────────────────────────────────────────
+model LicitacaoDocumento {
+  id                         String   @id @default(uuid())
+  licitacaoId                String   @unique @map("licitacao_id")
+  possuiEdital               Boolean  @default(false) @map("possui_edital")
+  possuiTermoReferencia      Boolean  @default(false) @map("possui_termo_referencia")
+  possuiProjetoBasico        Boolean  @default(false) @map("possui_projeto_basico")
+  possuiMemorialDescritivo   Boolean  @default(false) @map("possui_memorial_descritivo")
+  possuiAnexosTecnicos       Boolean  @default(false) @map("possui_anexos_tecnicos")
+  possuiPlanilhaOrcamentaria Boolean  @default(false) @map("possui_planilha_orcamentaria")
+  possuiCronograma           Boolean  @default(false) @map("possui_cronograma")
+  possuiMinutaContratual     Boolean  @default(false) @map("possui_minuta_contratual")
+  lacunasDocumentais         String?  @map("lacunas_documentais")
+  criadoEm                   DateTime @default(now()) @map("criado_em")
+  atualizadoEm               DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_documentos")
+}
+
+// ─── Sinais ───────────────────────────────────────────────────────────────────
+model LicitacaoSinal {
+  id             String   @id @default(uuid())
+  licitacaoId    String   @map("licitacao_id")
+  categoria      String   @db.VarChar(50)
+  subcategoria   String?  @db.VarChar(50)
+  sinal          String
+  nivel          String?  @db.VarChar(30)
+  trecho         String?
+  fonteDocumento String?  @map("fonte_documento") @db.VarChar(80)
+  relevancia     String?  @db.VarChar(20)
+  criadoEm       DateTime @default(now()) @map("criado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_sinais")
+}
+
+// ─── Itens e lotes ────────────────────────────────────────────────────────────
+model LicitacaoItem {
+  id                String   @id @default(uuid())
+  licitacaoId       String   @map("licitacao_id")
+  tipo              String?  @db.VarChar(20)
+  identificador     String?  @db.VarChar(80)
+  descricao         String?
+  quantitativo      Decimal? @db.Decimal(18, 4)
+  unidade           String?  @db.VarChar(30)
+  aderencia         String   @default("nenhuma") @db.VarChar(20)
+  tipoAderencia     String   @default("nenhuma") @map("tipo_aderencia") @db.VarChar(30)
+  prioridade        String   @default("baixa") @db.VarChar(20)
+  valorEstimadoItem Decimal? @map("valor_estimado_item") @db.Decimal(18, 2)
+  motivo            String?
+  observacoes       String?
+  criadoEm          DateTime @default(now()) @map("criado_em")
+  atualizadoEm      DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_itens")
+}
+
+// ─── Análise consolidada ──────────────────────────────────────────────────────
+model LicitacaoAnalise {
+  id                           String   @id @default(uuid())
+  licitacaoId                  String   @unique @map("licitacao_id")
+  aderenciaDiretaExiste        Boolean  @default(false) @map("aderencia_direta_existe")
+  aderenciaDiretaNivel         String   @default("nenhuma") @map("aderencia_direta_nivel") @db.VarChar(20)
+  aderenciaAplicacaoExiste     Boolean  @default(false) @map("aderencia_aplicacao_existe")
+  aderenciaAplicacaoNivel      String   @default("nenhuma") @map("aderencia_aplicacao_nivel") @db.VarChar(20)
+  contextoOcultoExiste         Boolean  @default(false) @map("contexto_oculto_existe")
+  contextoOcultoNivel          String   @default("nenhuma") @map("contexto_oculto_nivel") @db.VarChar(20)
+  modeloComercialExiste        Boolean  @default(false) @map("modelo_comercial_existe")
+  modeloComercialNivel         String   @default("nenhum") @map("modelo_comercial_nivel") @db.VarChar(20)
+  oportunidadeOcultaExiste     Boolean  @default(false) @map("oportunidade_oculta_existe")
+  oportunidadeOcultaForca      String   @default("nenhuma") @map("oportunidade_oculta_forca") @db.VarChar(20)
+  oportunidadeOcultaResumo     String?  @map("oportunidade_oculta_resumo")
+  oportunidadeNoObjeto         Boolean  @default(false) @map("oportunidade_no_objeto")
+  oportunidadeNoTr             Boolean  @default(false) @map("oportunidade_no_tr")
+  oportunidadeNosLotes         Boolean  @default(false) @map("oportunidade_nos_lotes")
+  oportunidadeNosItens         Boolean  @default(false) @map("oportunidade_nos_itens")
+  oportunidadeNaPlanilha       Boolean  @default(false) @map("oportunidade_na_planilha")
+  oportunidadeNoMemorial       Boolean  @default(false) @map("oportunidade_no_memorial")
+  oportunidadeEmAnexoTecnico   Boolean  @default(false) @map("oportunidade_em_anexo_tecnico")
+  portfolioAplicavel           Json     @default("[]") @map("portfolio_aplicavel")
+  solucoesMuliteinerAplicaveis Json     @default("[]") @map("solucoes_multiteiner_aplicaveis")
+  criadoEm                     DateTime @default(now()) @map("criado_em")
+  atualizadoEm                 DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_analise")
+}
+
+// ─── Parecer executivo ────────────────────────────────────────────────────────
+model LicitacaoParece {
+  id                                   String   @id @default(uuid())
+  licitacaoId                          String   @unique @map("licitacao_id")
+  classificacaoFinal                   String   @default("D") @map("classificacao_final") @db.VarChar(5)
+  prioridadeComercial                  String   @default("baixa") @map("prioridade_comercial") @db.VarChar(20)
+  valeEsforcoComercial                 Boolean  @default(false) @map("vale_esforco_comercial")
+  recomendacaoFinal                    String   @default("DESCARTAR") @map("recomendacao_final") @db.VarChar(40)
+  resumo                               String?
+  oportunidadeDireta                   Boolean  @default(false) @map("oportunidade_direta")
+  oportunidadeIndireta                 Boolean  @default(false) @map("oportunidade_indireta")
+  oportunidadeOcultaItemLoteAnexo      Boolean  @default(false) @map("oportunidade_oculta_item_lote_anexo")
+  oportunidadeInexistente              Boolean  @default(true) @map("oportunidade_inexistente")
+  ondeEstaOportunidade                 Json     @default("[]") @map("onde_esta_oportunidade")
+  solucoesQueMultiteinerPoderiaOfertar Json     @default("[]") @map("solucoes_que_multiteiner_poderia_ofertar")
+  proximoPasosRecomendado              Json     @default("[]") @map("proximo_passo_recomendado")
+  riscosLimitacoes                     Json     @default("[]") @map("riscos_limitacoes")
+  evidenciasPrincipais                 Json     @default("[]") @map("evidencias_principais")
+  riscoFalsoPositivo                   String   @default("baixo") @map("risco_falso_positivo") @db.VarChar(20)
+  riscoFalsoNegativoSoTitulo           String   @default("baixo") @map("risco_falso_negativo_so_titulo") @db.VarChar(20)
+  criadoEm                             DateTime @default(now()) @map("criado_em")
+  atualizadoEm                         DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_parecer")
+}
+
+// ─── Análises por IA ──────────────────────────────────────────────────────────
+model LicitacaoAnaliseIa {
+  id              String   @id @default(uuid())
+  licitacaoId     String   @map("licitacao_id")
+  tipoAnalise     String   @map("tipo_analise") @db.VarChar(50)
+  status          String   @default("pendente") @db.VarChar(30)
+  modeloUtilizado String?  @map("modelo_utilizado") @db.VarChar(80)
+  promptVersao    String?  @map("prompt_versao") @db.VarChar(40)
+  resultadoJson   Json     @default("{}") @map("resultado_json")
+  resumoTexto     String?  @map("resumo_texto")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacao_analises_ia")
+}
+
+// ─── Captação ─────────────────────────────────────────────────────────────────
+model CaptacaoFonte {
+  id                  String    @id @default(uuid())
+  nome                String    @db.VarChar(100)
+  tipo                String    @db.VarChar(50)
+  endpointBase        String?   @map("endpoint_base")
+  ativo               Boolean   @default(true)
+  autenticacaoTipo    String?   @map("autenticacao_tipo") @db.VarChar(50)
+  configuracao        Json      @default("{}")
+  ultimaSincronizacao DateTime? @map("ultima_sincronizacao")
+  criadoEm            DateTime  @default(now()) @map("criado_em")
+  atualizadoEm        DateTime  @updatedAt @map("atualizado_em")
+
+  execucoes CaptacaoExecucao[]
+  payloads  CaptacaoPayload[]
+  aliases   LicitacaoAliasOrigem[]
+
+  @@map("captacao_fontes")
+}
+
+model CaptacaoExecucao {
+  id                          String    @id @default(uuid())
+  fonteId                     String    @map("fonte_id")
+  iniciadoEm                  DateTime  @default(now()) @map("iniciado_em")
+  finalizadoEm                DateTime? @map("finalizado_em")
+  status                      String    @default("rodando") @db.VarChar(30)
+  totalLidos                  Int       @default(0) @map("total_lidos")
+  totalNovos                  Int       @default(0) @map("total_novos")
+  totalAtualizados            Int       @default(0) @map("total_atualizados")
+  totalDescartadosDuplicidade Int       @default(0) @map("total_descartados_duplicidade")
+  totalErros                  Int       @default(0) @map("total_erros")
+  logResumo                   String?   @map("log_resumo")
+
+  fonte    CaptacaoFonte     @relation(fields: [fonteId], references: [id], onDelete: Cascade)
+  payloads CaptacaoPayload[]
+
+  @@map("captacao_execucoes")
+}
+
+model CaptacaoPayload {
+  id                  String   @id @default(uuid())
+  execucaoId          String   @map("execucao_id")
+  fonteId             String   @map("fonte_id")
+  idExternoOrigem     String?  @map("id_externo_origem") @db.VarChar(200)
+  payloadBruto        Json     @map("payload_bruto")
+  hashPayload         String?  @map("hash_payload") @db.VarChar(128)
+  capturadoEm         DateTime @default(now()) @map("capturado_em")
+  statusProcessamento String   @default("pendente") @map("status_processamento") @db.VarChar(30)
+  erroProcessamento   String?  @map("erro_processamento")
+
+  execucao CaptacaoExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  fonte    CaptacaoFonte    @relation(fields: [fonteId], references: [id], onDelete: Cascade)
+
+  @@map("captacao_payloads")
+}
+
+model LicitacaoAliasOrigem {
+  id               String   @id @default(uuid())
+  licitacaoId      String   @map("licitacao_id")
+  fonteId          String   @map("fonte_id")
+  idExternoOrigem  String   @map("id_externo_origem") @db.VarChar(200)
+  hashDeduplicacao String?  @map("hash_deduplicacao") @db.VarChar(128)
+  objetoSnapshot   String?  @map("objeto_snapshot")
+  criadoEm         DateTime @default(now()) @map("criado_em")
+
+  licitacao Licitacao     @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  fonte     CaptacaoFonte @relation(fields: [fonteId], references: [id], onDelete: Cascade)
+
+  @@unique([fonteId, idExternoOrigem])
+  @@map("licitacao_aliases_origem")
 }
