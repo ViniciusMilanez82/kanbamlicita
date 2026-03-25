@@ -66,6 +66,8 @@ prisma.licitacao.findUniqueOrThrow({
 
 Retorna 404 se `id` não existir (Next.js `notFound()`).
 
+**Serialização de Decimal:** Seguindo o padrão de `/kanban/page.tsx`, todos os campos `Prisma.Decimal` devem ser convertidos para `Number` antes de passar como props para Client Components (`LicitacaoHeader`, `AnaliseForm`). Campos afetados: `valorGlobalEstimado` (Licitacao), `scoreFinal`/`valorCapturavelEstimado` (LicitacaoScore), `quantitativo`/`valorEstimadoItem` (LicitacaoItem[]). Usar `Number(field ?? 0)` ou `field ? Number(field) : null` conforme o campo seja obrigatório ou opcional.
+
 ---
 
 ## LicitacaoHeader
@@ -114,6 +116,7 @@ Server Component. Dois blocos em grid 2 colunas:
 - UF, Município, Região
 - Valor Global Estimado
 - Status Pipeline
+- Flags estruturais (read-only): `possuiLotes`, `possuiItens`, `possuiPlanilhaOrcamentaria`, `possuiQuantitativos`, `possuiPrecosUnitarios` — exibidos como badges sim/não neste bloco, **não** na seção Natureza do Objeto
 
 **Bloco Natureza do Objeto:**
 Checkboxes read-only para cada boolean da Licitacao:
@@ -181,7 +184,7 @@ Checkboxes para: `oportunidadeNoObjeto`, `oportunidadeNoTr`, `oportunidadeNosLot
 - Textarea "Soluções Multiteiner aplicáveis" (idem)
 
 **Botão "Salvar Análise":**
-- `POST /api/licitacoes/[id]/analise` com body JSON
+- `PUT /api/licitacoes/[id]/analise` com body JSON
 - Loading state durante submit
 - Toast de sucesso/erro via `sonner` (já configurado)
 - Após sucesso: `router.refresh()` para atualizar dados do Server Component
