@@ -31,7 +31,7 @@ export function HistoricoTab({ movimentacoes }: Props) {
               <span className="font-medium">{colunaLabel(mov.colunaDestino)}</span>
             </p>
             {mov.motivo && (
-              <p className="text-xs text-slate-500 mt-0.5 italic">"{mov.motivo}"</p>
+              <p className="text-xs text-slate-500 mt-0.5 italic">&ldquo;{mov.motivo}&rdquo;</p>
             )}
             <p className="text-[10px] text-slate-300 mt-0.5">
               {mov.automatico ? 'Automático' : 'Manual'}
