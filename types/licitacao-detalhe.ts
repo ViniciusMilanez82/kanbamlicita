@@ -49,6 +49,12 @@ export type ParecerDetalhe = {
   oportunidadeInexistente: boolean
   riscoFalsoPositivo: string
   riscoFalsoNegativoSoTitulo: string
+  // SP-6:
+  ondeEstaOportunidade: string[]
+  solucoesQueMultiteinerPoderiaOfertar: string[]
+  proximoPasosRecomendado: string[]
+  riscosLimitacoes: string[]
+  evidenciasPrincipais: string[]
 } | null
 
 export type DocumentosDetalhe = {
