@@ -21,7 +21,7 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
       card: true,
       movimentacoes: { orderBy: { criadoEm: 'desc' } },
       score: true,
-      parecer: true,           // ← add this line
+      parecer: true,
       documentos: true,
       itens: { orderBy: { criadoEm: 'asc' } },
       analise: true,
