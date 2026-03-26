@@ -166,7 +166,7 @@ Recebe `listasParecerTab` como prop em vez das constantes hardcoded.
 | Criar | `prisma/migrations/...` | Migration da nova tabela |
 | Modificar | `prisma/seed.ts` | Seed do registro `default` |
 | Modificar | `lib/score/calculator.ts` | Aceitar `ConfigPesos` como parâmetro |
-| Modificar | `__tests__/lib/score/calculator.test.ts` | Passar pesos nos testes existentes |
+| Modificar | `__tests__/lib/score/calculator.test.ts` | Nenhuma alteração necessária (defaults garantem retrocompatibilidade) |
 | Modificar | `app/licitacoes/[id]/page.tsx` | Carregar config e passar como props |
 | Modificar | `components/licitacao/tabs/ScoreTab.tsx` | Receber `configPesos` e `configFaixas` como props |
 | Modificar | `components/licitacao/tabs/ParecerTab.tsx` | Receber `listasParecerTab` como prop |
