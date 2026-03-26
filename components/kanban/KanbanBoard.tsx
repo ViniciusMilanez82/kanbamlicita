@@ -183,7 +183,7 @@ export function KanbanBoard({ initialData }: { initialData: LicitacaoComCard[] }
       />
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
-        <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+        <DndContext id="kanban-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <div className="flex gap-3 h-full">
             {KANBAN_COLUNAS.map((coluna) => (
               <KanbanColumn
