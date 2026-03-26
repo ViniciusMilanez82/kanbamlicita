@@ -28,7 +28,7 @@ function nivelIa(nivel: string): number {
   return 0
 }
 
-export function faixa(score: number): string {
+function faixa(score: number): string {
   if (score >= 85) return 'A+'
   if (score >= 70) return 'A'
   if (score >= 55) return 'B'
@@ -37,7 +37,7 @@ export function faixa(score: number): string {
 }
 
 export function calcularScore(
-  analise: AnaliseDetalhe,
+  analise: AnaliseDetalhe | null,
   analiseIaResult: AnaliseIaResult | null
 ): ScoreSugestao {
   const scoreAderenciaDireta =
