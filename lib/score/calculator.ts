@@ -1,6 +1,38 @@
 import type { AnaliseDetalhe } from '@/types/licitacao-detalhe'
 import type { AnaliseIaResult } from '@/lib/llm/prompts/analise-completa'
 
+export type ConfigPesos = {
+  aderenciaDireta: number
+  aderenciaAplicacao: number
+  contextoOculto: number
+  modeloComercial: number
+  potencialEconomico: number
+  qualidadeEvidencia: number
+}
+
+export type ConfigFaixas = {
+  aPlus: number
+  a: number
+  b: number
+  c: number
+}
+
+export const PESOS_PADRAO: ConfigPesos = {
+  aderenciaDireta: 15,
+  aderenciaAplicacao: 25,
+  contextoOculto: 20,
+  modeloComercial: 15,
+  potencialEconomico: 15,
+  qualidadeEvidencia: 10,
+}
+
+export const FAIXAS_PADRAO: ConfigFaixas = {
+  aPlus: 85,
+  a: 70,
+  b: 55,
+  c: 40,
+}
+
 export type ScoreSugestao = {
   scoreAderenciaDireta: number
   scoreAderenciaAplicacao: number
@@ -28,17 +60,19 @@ function nivelIa(nivel: string): number {
   return 0
 }
 
-export function faixa(score: number): string {
-  if (score >= 85) return 'A+'
-  if (score >= 70) return 'A'
-  if (score >= 55) return 'B'
-  if (score >= 40) return 'C'
+export function faixa(score: number, faixas: ConfigFaixas = FAIXAS_PADRAO): string {
+  if (score >= faixas.aPlus) return 'A+'
+  if (score >= faixas.a) return 'A'
+  if (score >= faixas.b) return 'B'
+  if (score >= faixas.c) return 'C'
   return 'D'
 }
 
 export function calcularScore(
   analise: AnaliseDetalhe | null,
-  analiseIaResult: AnaliseIaResult | null
+  analiseIaResult: AnaliseIaResult | null,
+  pesos: ConfigPesos = PESOS_PADRAO,
+  faixasConfig: ConfigFaixas = FAIXAS_PADRAO
 ): ScoreSugestao {
   const scoreAderenciaDireta =
     analise && analise.aderenciaDiretaExiste ? nivelAnalise(analise.aderenciaDiretaNivel) : 0
@@ -73,12 +107,12 @@ export function calcularScore(
     : 0
 
   const scoreFinal =
-    (scoreAderenciaDireta * 15 +
-      scoreAderenciaAplicacao * 25 +
-      scoreContextoOculto * 20 +
-      scoreModeloComercial * 15 +
-      scorePotencialEconomico * 15 +
-      scoreQualidadeEvidencia * 10) /
+    (scoreAderenciaDireta * pesos.aderenciaDireta +
+      scoreAderenciaAplicacao * pesos.aderenciaAplicacao +
+      scoreContextoOculto * pesos.contextoOculto +
+      scoreModeloComercial * pesos.modeloComercial +
+      scorePotencialEconomico * pesos.potencialEconomico +
+      scoreQualidadeEvidencia * pesos.qualidadeEvidencia) /
     100
 
   return {
@@ -89,6 +123,6 @@ export function calcularScore(
     scorePotencialEconomico,
     scoreQualidadeEvidencia,
     scoreFinal: Math.round(scoreFinal * 100) / 100,
-    faixaClassificacao: faixa(scoreFinal),
+    faixaClassificacao: faixa(scoreFinal, faixasConfig),
   }
 }
