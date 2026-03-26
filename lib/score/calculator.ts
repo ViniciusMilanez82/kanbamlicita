@@ -28,7 +28,7 @@ function nivelIa(nivel: string): number {
   return 0
 }
 
-function faixa(score: number): string {
+export function faixa(score: number): string {
   if (score >= 85) return 'A+'
   if (score >= 70) return 'A'
   if (score >= 55) return 'B'

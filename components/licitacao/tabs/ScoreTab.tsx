@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { calcularScore } from '@/lib/score/calculator'
+import { calcularScore, faixa } from '@/lib/score/calculator'
 import type { ScoreDetalhe, AnaliseDetalhe, AnaliseIaDetalhe } from '@/types/licitacao-detalhe'
 import type { AnaliseIaResult } from '@/lib/llm/prompts/analise-completa'
 
@@ -65,14 +65,6 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
       qualidadeEvidencia * 10) /
     100
 
-  function faixa(s: number) {
-    if (s >= 85) return 'A+'
-    if (s >= 70) return 'A'
-    if (s >= 55) return 'B'
-    if (s >= 40) return 'C'
-    return 'D'
-  }
-
   function handleSugerir() {
     const iaResult =
       analiseIa?.status === 'CONCLUIDO'
@@ -82,7 +74,7 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
     setAderenciaDireta(sugestao.scoreAderenciaDireta)
     setAderenciaAplicacao(sugestao.scoreAderenciaAplicacao)
     setContextoOculto(sugestao.scoreContextoOculto)
-    setModeloComercial(sugestao.scoreModeloComercial)
+    setModeloComercial(Math.round(sugestao.scoreModeloComercial))
     setPotencialEconomico(sugestao.scorePotencialEconomico)
     setQualidadeEvidencia(sugestao.scoreQualidadeEvidencia)
   }
@@ -159,7 +151,7 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
                 min={0}
                 max={100}
                 value={value}
-                onChange={(e) => set(Number(e.target.value))}
+                onChange={(e) => set(Math.min(100, Math.max(0, Number(e.target.value))))}
                 className="border border-slate-300 rounded px-2 py-1 text-sm w-full"
               />
             </label>
