@@ -156,12 +156,14 @@ export type ParecerDetalhe = {
 No bloco `parecer: row.parecer ? { ... } : null`, adicionar após `riscoFalsoNegativoSoTitulo`:
 
 ```ts
-ondeEstaOportunidade: row.parecer.ondeEstaOportunidade as string[],
-solucoesQueMultiteinerPoderiaOfertar: row.parecer.solucoesQueMultiteinerPoderiaOfertar as string[],
-proximoPasosRecomendado: row.parecer.proximoPasosRecomendado as string[],
-riscosLimitacoes: row.parecer.riscosLimitacoes as string[],
-evidenciasPrincipais: row.parecer.evidenciasPrincipais as string[],
+ondeEstaOportunidade: row.parecer.ondeEstaOportunidade as unknown[],
+solucoesQueMultiteinerPoderiaOfertar: row.parecer.solucoesQueMultiteinerPoderiaOfertar as unknown[],
+proximoPasosRecomendado: row.parecer.proximoPasosRecomendado as unknown[],
+riscosLimitacoes: row.parecer.riscosLimitacoes as unknown[],
+evidenciasPrincipais: row.parecer.evidenciasPrincipais as unknown[],
 ```
+
+> Consistente com o padrão do projeto: campos Json são serializados como `unknown[]` na camada de `page.tsx`, e o cast para `string[]` ocorre nos componentes (`(parecer?.campo as string[]) ?? []`), exatamente como `falsoNegativoMotivos as unknown[]` no score.
 
 ---
 
@@ -189,13 +191,19 @@ const [evidencias, setEvidencias] = useState<string[]>(
 )
 ```
 
-### Função toggle (genérica)
+### Função toggle (genérica, tipagem explícita)
 
 ```ts
-function toggle(list: string[], setList: (v: string[]) => void, value: string) {
-  setList(list.includes(value) ? list.filter(v => v !== value) : [...list, value])
+function toggle(
+  list: string[],
+  setList: React.Dispatch<React.SetStateAction<string[]>>,
+  value: string
+): void {
+  setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
 }
 ```
+
+> Preferir uma única função genérica reutilizada pelos 5 campos, ao invés de 5 closures separadas como no ScoreTab (`toggleMotivo`). Reduz repetição dado que os campos têm comportamento idêntico.
 
 ### Body do PUT (adicionar ao handleSalvar)
 
