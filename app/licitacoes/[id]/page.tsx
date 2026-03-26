@@ -21,6 +21,7 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
       card: true,
       movimentacoes: { orderBy: { criadoEm: 'desc' } },
       score: true,
+      parecer: true,           // ← add this line
       documentos: true,
       itens: { orderBy: { criadoEm: 'asc' } },
       analise: true,
@@ -51,10 +52,51 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
       ? {
           scoreFinal: Number(row.score.scoreFinal),
           faixaClassificacao: row.score.faixaClassificacao,
+          scoreAderenciaDireta: Number(row.score.scoreAderenciaDireta),
+          scoreAderenciaAplicacao: Number(row.score.scoreAderenciaAplicacao),
+          scoreContextoOculto: Number(row.score.scoreContextoOculto),
+          scoreModeloComercial: Number(row.score.scoreModeloComercial),
+          scorePotencialEconomico: Number(row.score.scorePotencialEconomico),
+          scoreQualidadeEvidencia: Number(row.score.scoreQualidadeEvidencia),
+          scoreJustificativaResumida: row.score.scoreJustificativaResumida,
+          valorCapturavelObrigatorioPreenchido: row.score.valorCapturavelObrigatorioPreenchido,
+          valorCapturavelFoiPossivelEstimar: row.score.valorCapturavelFoiPossivelEstimar,
           valorCapturavelEstimado: row.score.valorCapturavelEstimado
             ? Number(row.score.valorCapturavelEstimado)
             : null,
+          valorCapturavelFaixaMin: row.score.valorCapturavelFaixaMin
+            ? Number(row.score.valorCapturavelFaixaMin)
+            : null,
+          valorCapturavelFaixaMax: row.score.valorCapturavelFaixaMax
+            ? Number(row.score.valorCapturavelFaixaMax)
+            : null,
+          valorCapturavelMoeda: row.score.valorCapturavelMoeda,
+          valorCapturavelNivelConfianca: row.score.valorCapturavelNivelConfianca,
+          valorCapturavelMetodoEstimativa: row.score.valorCapturavelMetodoEstimativa,
+          valorCapturavelJustificativa: row.score.valorCapturavelJustificativa,
+          valorCapturavelBaseDocumental: row.score.valorCapturavelBaseDocumental as unknown[],
+          valorCapturavelObservacao: row.score.valorCapturavelObservacao,
+          falsoNegativoObrigatorioPreenchido: row.score.falsoNegativoObrigatorioPreenchido,
+          falsoNegativoExisteRisco: row.score.falsoNegativoExisteRisco,
           falsoNegativoNivelRisco: row.score.falsoNegativoNivelRisco,
+          falsoNegativoMotivos: row.score.falsoNegativoMotivos as unknown[],
+          falsoNegativoTrechosCriticos: row.score.falsoNegativoTrechosCriticos as unknown[],
+          falsoNegativoResumo: row.score.falsoNegativoResumo,
+        }
+      : null,
+    parecer: row.parecer
+      ? {
+          classificacaoFinal: row.parecer.classificacaoFinal,
+          prioridadeComercial: row.parecer.prioridadeComercial,
+          valeEsforcoComercial: row.parecer.valeEsforcoComercial,
+          recomendacaoFinal: row.parecer.recomendacaoFinal,
+          resumo: row.parecer.resumo,
+          oportunidadeDireta: row.parecer.oportunidadeDireta,
+          oportunidadeIndireta: row.parecer.oportunidadeIndireta,
+          oportunidadeOcultaItemLoteAnexo: row.parecer.oportunidadeOcultaItemLoteAnexo,
+          oportunidadeInexistente: row.parecer.oportunidadeInexistente,
+          riscoFalsoPositivo: row.parecer.riscoFalsoPositivo,
+          riscoFalsoNegativoSoTitulo: row.parecer.riscoFalsoNegativoSoTitulo,
         }
       : null,
     documentos: row.documentos

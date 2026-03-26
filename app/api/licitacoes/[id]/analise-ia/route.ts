@@ -62,6 +62,7 @@ export async function processAnalise(
         analise: true,
         documentos: true,
         score: true,
+        parecer: true,
         movimentacoes: { orderBy: { criadoEm: 'desc' } },
       },
     })
@@ -98,6 +99,7 @@ type LicitacaoWithRelations = Awaited<ReturnType<typeof db.licitacao.findUniqueO
   analise: Awaited<ReturnType<typeof db.licitacaoAnalise.findFirst>>
   documentos: Awaited<ReturnType<typeof db.licitacaoDocumento.findFirst>>
   score: Awaited<ReturnType<typeof db.licitacaoScore.findFirst>>
+  parecer: Awaited<ReturnType<typeof db.licitacaoParece.findFirst>>
   movimentacoes: KanbanMovimentacaoModel[]
 }
 
@@ -120,10 +122,51 @@ function serializeForPrompt(row: LicitacaoWithRelations): LicitacaoDetalhe {
       ? {
           scoreFinal: Number(row.score.scoreFinal),
           faixaClassificacao: row.score.faixaClassificacao,
+          scoreAderenciaDireta: Number(row.score.scoreAderenciaDireta),
+          scoreAderenciaAplicacao: Number(row.score.scoreAderenciaAplicacao),
+          scoreContextoOculto: Number(row.score.scoreContextoOculto),
+          scoreModeloComercial: Number(row.score.scoreModeloComercial),
+          scorePotencialEconomico: Number(row.score.scorePotencialEconomico),
+          scoreQualidadeEvidencia: Number(row.score.scoreQualidadeEvidencia),
+          scoreJustificativaResumida: row.score.scoreJustificativaResumida,
+          valorCapturavelObrigatorioPreenchido: row.score.valorCapturavelObrigatorioPreenchido,
+          valorCapturavelFoiPossivelEstimar: row.score.valorCapturavelFoiPossivelEstimar,
           valorCapturavelEstimado: row.score.valorCapturavelEstimado
             ? Number(row.score.valorCapturavelEstimado)
             : null,
+          valorCapturavelFaixaMin: row.score.valorCapturavelFaixaMin
+            ? Number(row.score.valorCapturavelFaixaMin)
+            : null,
+          valorCapturavelFaixaMax: row.score.valorCapturavelFaixaMax
+            ? Number(row.score.valorCapturavelFaixaMax)
+            : null,
+          valorCapturavelMoeda: row.score.valorCapturavelMoeda,
+          valorCapturavelNivelConfianca: row.score.valorCapturavelNivelConfianca,
+          valorCapturavelMetodoEstimativa: row.score.valorCapturavelMetodoEstimativa,
+          valorCapturavelJustificativa: row.score.valorCapturavelJustificativa,
+          valorCapturavelBaseDocumental: row.score.valorCapturavelBaseDocumental as unknown[],
+          valorCapturavelObservacao: row.score.valorCapturavelObservacao,
+          falsoNegativoObrigatorioPreenchido: row.score.falsoNegativoObrigatorioPreenchido,
+          falsoNegativoExisteRisco: row.score.falsoNegativoExisteRisco,
           falsoNegativoNivelRisco: row.score.falsoNegativoNivelRisco,
+          falsoNegativoMotivos: row.score.falsoNegativoMotivos as unknown[],
+          falsoNegativoTrechosCriticos: row.score.falsoNegativoTrechosCriticos as unknown[],
+          falsoNegativoResumo: row.score.falsoNegativoResumo,
+        }
+      : null,
+    parecer: row.parecer
+      ? {
+          classificacaoFinal: row.parecer.classificacaoFinal,
+          prioridadeComercial: row.parecer.prioridadeComercial,
+          valeEsforcoComercial: row.parecer.valeEsforcoComercial,
+          recomendacaoFinal: row.parecer.recomendacaoFinal,
+          resumo: row.parecer.resumo,
+          oportunidadeDireta: row.parecer.oportunidadeDireta,
+          oportunidadeIndireta: row.parecer.oportunidadeIndireta,
+          oportunidadeOcultaItemLoteAnexo: row.parecer.oportunidadeOcultaItemLoteAnexo,
+          oportunidadeInexistente: row.parecer.oportunidadeInexistente,
+          riscoFalsoPositivo: row.parecer.riscoFalsoPositivo,
+          riscoFalsoNegativoSoTitulo: row.parecer.riscoFalsoNegativoSoTitulo,
         }
       : null,
     documentos: row.documentos ?? null,
