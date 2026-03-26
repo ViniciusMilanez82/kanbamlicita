@@ -11,8 +11,44 @@ export type CardDetalhe = {
 export type ScoreDetalhe = {
   scoreFinal: number
   faixaClassificacao: string
+  scoreAderenciaDireta: number
+  scoreAderenciaAplicacao: number
+  scoreContextoOculto: number
+  scoreModeloComercial: number
+  scorePotencialEconomico: number
+  scoreQualidadeEvidencia: number
+  scoreJustificativaResumida: string | null
+  valorCapturavelObrigatorioPreenchido: boolean
+  valorCapturavelFoiPossivelEstimar: boolean
   valorCapturavelEstimado: number | null
+  valorCapturavelFaixaMin: number | null
+  valorCapturavelFaixaMax: number | null
+  valorCapturavelMoeda: string
+  valorCapturavelNivelConfianca: string
+  valorCapturavelMetodoEstimativa: string
+  valorCapturavelJustificativa: string
+  valorCapturavelBaseDocumental: unknown[]
+  valorCapturavelObservacao: string | null
+  falsoNegativoObrigatorioPreenchido: boolean
+  falsoNegativoExisteRisco: boolean
   falsoNegativoNivelRisco: string
+  falsoNegativoMotivos: unknown[]
+  falsoNegativoTrechosCriticos: unknown[]
+  falsoNegativoResumo: string
+} | null
+
+export type ParecerDetalhe = {
+  classificacaoFinal: string
+  prioridadeComercial: string
+  valeEsforcoComercial: boolean
+  recomendacaoFinal: string
+  resumo: string | null
+  oportunidadeDireta: boolean
+  oportunidadeIndireta: boolean
+  oportunidadeOcultaItemLoteAnexo: boolean
+  oportunidadeInexistente: boolean
+  riscoFalsoPositivo: string
+  riscoFalsoNegativoSoTitulo: string
 } | null
 
 export type DocumentosDetalhe = {
@@ -123,6 +159,7 @@ export type LicitacaoDetalhe = {
   // relações
   card: CardDetalhe | null
   score: ScoreDetalhe
+  parecer: ParecerDetalhe
   documentos: DocumentosDetalhe
   itens: ItemDetalhe[]
   analise: AnaliseDetalhe
