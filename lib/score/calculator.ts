@@ -60,11 +60,9 @@ export function calcularScore(
         analise.oportunidadeEmAnexoTecnico,
       ]
     : []
-  const oportunidadeCount = oportunidadeFields.filter(Boolean).length
-  const oportunidadeRaw = analise ? (oportunidadeCount / 7) * 100 : 0
-  const scoreModeloComercial = analise && analise.oportunidadeOcultaExiste
-    ? Math.max(30, oportunidadeRaw)
-    : oportunidadeRaw
+  const scoreModeloComercial = analise
+    ? (oportunidadeFields.filter(Boolean).length / 7) * 100
+    : 0
 
   const scorePotencialEconomico = analiseIaResult
     ? nivelIa(analiseIaResult.aderencia.nivel)

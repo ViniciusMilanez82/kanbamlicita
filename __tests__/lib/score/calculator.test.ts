@@ -104,8 +104,9 @@ describe('calcularScore', () => {
       confianca: 'baixa',
     }
     const result = calcularScore(analiseBaixa, analiseIaBaixa)
-    // todos componentes = 30, score = 30*100/100 = 30
-    expect(result.scoreFinal).toBe(30)
+    // aderencia/contexto/ia = 30; scoreModeloComercial = 0 (7 booleanos false)
+    // (30*15 + 30*25 + 30*20 + 0*15 + 30*15 + 30*10) / 100 = 25.5
+    expect(result.scoreFinal).toBe(25.5)
     expect(result.faixaClassificacao).toBe('D')
   })
 })
