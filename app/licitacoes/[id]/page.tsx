@@ -12,11 +12,24 @@ import { ScoreTab } from '@/components/licitacao/tabs/ScoreTab'
 import { ParecerTab } from '@/components/licitacao/tabs/ParecerTab'
 import { db } from '@/lib/db'
 import type { LicitacaoDetalhe } from '@/types/licitacao-detalhe'
+import { PESOS_PADRAO, FAIXAS_PADRAO } from '@/lib/score/calculator'
+import type { ConfigPesos, ConfigFaixas } from '@/lib/score/calculator'
 
 const VALID_TABS = ['resumo', 'documentos', 'itens', 'analise', 'historico', 'ia', 'score', 'parecer'] as const
 type Tab = typeof VALID_TABS[number]
 
-async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
+async function getLicitacao(id: string): Promise<{
+  licitacao: LicitacaoDetalhe
+  configPesos: ConfigPesos
+  configFaixas: ConfigFaixas
+  listasParecerTab: {
+    ondeEstaOportunidade: string[]
+    solucoesQueMultiteinerPoderiaOfertar: string[]
+    proximoPasosRecomendado: string[]
+    riscosLimitacoes: string[]
+    evidenciasPrincipais: string[]
+  }
+}> {
   const row = await db.licitacao.findUnique({
     where: { id },
     include: {
@@ -36,7 +49,24 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
 
   if (!row) notFound()
 
-  return {
+  const config = await db.configuracaoSistema.findUnique({ where: { id: 'default' } })
+  const configPesos = (config?.pesosScore ?? PESOS_PADRAO) as ConfigPesos
+  const configFaixas = (config?.faixasScore ?? FAIXAS_PADRAO) as ConfigFaixas
+  const listasParecerTab = (config?.listasParecerTab ?? {
+    ondeEstaOportunidade: [],
+    solucoesQueMultiteinerPoderiaOfertar: [],
+    proximoPasosRecomendado: [],
+    riscosLimitacoes: [],
+    evidenciasPrincipais: [],
+  }) as {
+    ondeEstaOportunidade: string[]
+    solucoesQueMultiteinerPoderiaOfertar: string[]
+    proximoPasosRecomendado: string[]
+    riscosLimitacoes: string[]
+    evidenciasPrincipais: string[]
+  }
+
+  const licitacao: LicitacaoDetalhe = {
     ...row,
     dataPublicacao: row.dataPublicacao?.toISOString() ?? null,
     dataSessao: row.dataSessao?.toISOString() ?? null,
@@ -174,6 +204,8 @@ async function getLicitacao(id: string): Promise<LicitacaoDetalhe> {
         }
       : null,
   }
+
+  return { licitacao, configPesos, configFaixas, listasParecerTab }
 }
 
 function PlaceholderTab({ feature }: { feature: string }) {
@@ -196,7 +228,7 @@ export default async function LicitacaoDetalhePage({ params, searchParams }: Pag
   const { tab } = await searchParams
   const activeTab: Tab = (VALID_TABS.includes(tab as Tab) ? tab : 'resumo') as Tab
 
-  const licitacao = await getLicitacao(id)
+  const { licitacao, configPesos, configFaixas, listasParecerTab } = await getLicitacao(id)
 
   return (
     <>
@@ -223,6 +255,8 @@ export default async function LicitacaoDetalhePage({ params, searchParams }: Pag
               score={licitacao.score}
               analise={licitacao.analise}
               analiseIa={licitacao.analiseIa}
+              configPesos={configPesos}
+              configFaixas={configFaixas}
             />
           )}
           {activeTab === 'parecer' && (
@@ -230,6 +264,7 @@ export default async function LicitacaoDetalhePage({ params, searchParams }: Pag
               licitacaoId={id}
               parecer={licitacao.parecer}
               score={licitacao.score}
+              listasParecerTab={listasParecerTab}
             />
           )}
         </div>

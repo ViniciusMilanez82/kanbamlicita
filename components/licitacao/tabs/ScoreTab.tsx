@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { calcularScore, faixa } from '@/lib/score/calculator'
+import type { ConfigPesos, ConfigFaixas } from '@/lib/score/calculator'
 import type { ScoreDetalhe, AnaliseDetalhe, AnaliseIaDetalhe } from '@/types/licitacao-detalhe'
 import type { AnaliseIaResult } from '@/lib/llm/prompts/analise-completa'
 
@@ -10,6 +11,8 @@ type Props = {
   score: ScoreDetalhe
   analise: AnaliseDetalhe
   analiseIa: AnaliseIaDetalhe
+  configPesos: ConfigPesos
+  configFaixas: ConfigFaixas
 }
 
 const FALSO_NEGATIVO_MOTIVOS = [
@@ -27,7 +30,7 @@ const FALSO_NEGATIVO_MOTIVOS = [
   'exigencia_tecnica_incomum',
 ]
 
-export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
+export function ScoreTab({ licitacaoId, score, analise, analiseIa, configPesos, configFaixas }: Props) {
   const [aderenciaDireta, setAderenciaDireta] = useState(score?.scoreAderenciaDireta ?? 0)
   const [aderenciaAplicacao, setAderenciaAplicacao] = useState(score?.scoreAderenciaAplicacao ?? 0)
   const [contextoOculto, setContextoOculto] = useState(score?.scoreContextoOculto ?? 0)
@@ -57,12 +60,12 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
   const [msg, setMsg] = useState<string | null>(null)
 
   const scoreFinal =
-    (aderenciaDireta * 15 +
-      aderenciaAplicacao * 25 +
-      contextoOculto * 20 +
-      modeloComercial * 15 +
-      potencialEconomico * 15 +
-      qualidadeEvidencia * 10) /
+    (aderenciaDireta * configPesos.aderenciaDireta +
+      aderenciaAplicacao * configPesos.aderenciaAplicacao +
+      contextoOculto * configPesos.contextoOculto +
+      modeloComercial * configPesos.modeloComercial +
+      potencialEconomico * configPesos.potencialEconomico +
+      qualidadeEvidencia * configPesos.qualidadeEvidencia) /
     100
 
   function handleSugerir() {
@@ -70,7 +73,7 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
       analiseIa?.status === 'CONCLUIDO'
         ? (analiseIa.resultadoJson as AnaliseIaResult)
         : null
-    const sugestao = calcularScore(analise, iaResult)
+    const sugestao = calcularScore(analise, iaResult, configPesos, configFaixas)
     setAderenciaDireta(sugestao.scoreAderenciaDireta)
     setAderenciaAplicacao(sugestao.scoreAderenciaAplicacao)
     setContextoOculto(sugestao.scoreContextoOculto)
@@ -94,7 +97,7 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
           scorePotencialEconomico: potencialEconomico,
           scoreQualidadeEvidencia: qualidadeEvidencia,
           scoreFinal: Math.round(scoreFinal * 100) / 100,
-          faixaClassificacao: faixa(scoreFinal),
+          faixaClassificacao: faixa(scoreFinal, configFaixas),
           scoreJustificativaResumida: justificativa || null,
           valorCapturavelObrigatorioPreenchido: true,
           valorCapturavelFoiPossivelEstimar: foiPossivelEstimar,
@@ -159,7 +162,7 @@ export function ScoreTab({ licitacaoId, score, analise, analiseIa }: Props) {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-slate-600">
-            Score final: <strong>{Math.round(scoreFinal * 100) / 100}</strong> — Faixa: <strong>{faixa(scoreFinal)}</strong>
+            Score final: <strong>{Math.round(scoreFinal * 100) / 100}</strong> — Faixa: <strong>{faixa(scoreFinal, configFaixas)}</strong>
           </span>
         </div>
         <label className="flex flex-col gap-1">

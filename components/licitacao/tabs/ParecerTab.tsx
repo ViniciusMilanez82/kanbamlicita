@@ -3,74 +3,22 @@
 import { useState } from 'react'
 import type { ParecerDetalhe, ScoreDetalhe } from '@/types/licitacao-detalhe'
 
-const ONDE_ESTA_OPORTUNIDADE = [
-  'objeto',
-  'tr',
-  'lotes',
-  'itens',
-  'planilha',
-  'memorial',
-  'anexo_tecnico',
-]
-
-const SOLUCOES_MULTITEINER = [
-  'containers_adaptados',
-  'modulos_habitacionais',
-  'modulos_administrativos',
-  'modulos_sanitarios',
-  'guaritas',
-  'almoxarifados',
-  'refeitorios',
-  'alojamentos',
-  'escritorios_de_obra',
-  'bases_operacionais',
-  'estruturas_temporarias_modulares',
-]
-
-const PROXIMOS_PASSOS = [
-  'elaborar_proposta',
-  'solicitar_esclarecimentos',
-  'visitar_local',
-  'contatar_gestor',
-  'acompanhar_publicacao',
-  'montar_consorcio',
-  'aguardar_nova_edicao',
-  'solicitar_visita_tecnica',
-  'preparar_amostra',
-  'cadastrar_fornecedor',
-]
-
-const RISCOS_LIMITACOES = [
-  'prazo_curto',
-  'exigencia_tecnica_restritiva',
-  'capacidade_limitada',
-  'concorrencia_acirrada',
-  'preco_referencia_baixo',
-  'localizacao_desfavoravel',
-  'habilitacao_complexa',
-  'historico_direcionamento',
-  'escopo_indefinido',
-  'dependencia_de_parceiro',
-]
-
-const EVIDENCIAS_PRINCIPAIS = [
-  'mencao_explicita_no_tr',
-  'mencao_em_item_ou_lote',
-  'descricao_tecnica_compativel',
-  'quantitativo_compativel',
-  'aderencia_ao_portfolio',
-  'historico_de_relacionamento',
-  'preco_referencia_compativel',
-  'concorrente_fraco_identificado',
-]
+type ListasParecerTab = {
+  ondeEstaOportunidade: string[]
+  solucoesQueMultiteinerPoderiaOfertar: string[]
+  proximoPasosRecomendado: string[]
+  riscosLimitacoes: string[]
+  evidenciasPrincipais: string[]
+}
 
 type Props = {
   licitacaoId: string
   parecer: ParecerDetalhe
   score: ScoreDetalhe
+  listasParecerTab: ListasParecerTab
 }
 
-export function ParecerTab({ licitacaoId, parecer, score }: Props) {
+export function ParecerTab({ licitacaoId, parecer, score, listasParecerTab }: Props) {
   const [classificacaoFinal, setClassificacaoFinal] = useState(
     parecer?.classificacaoFinal ?? score?.faixaClassificacao ?? 'D'
   )
@@ -281,7 +229,7 @@ export function ParecerTab({ licitacaoId, parecer, score }: Props) {
           Onde está a oportunidade
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {ONDE_ESTA_OPORTUNIDADE.map((v) => (
+          {listasParecerTab.ondeEstaOportunidade.map((v) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -300,7 +248,7 @@ export function ParecerTab({ licitacaoId, parecer, score }: Props) {
           Soluções Multiteiner aplicáveis
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {SOLUCOES_MULTITEINER.map((v) => (
+          {listasParecerTab.solucoesQueMultiteinerPoderiaOfertar.map((v) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -319,7 +267,7 @@ export function ParecerTab({ licitacaoId, parecer, score }: Props) {
           Próximos passos recomendados
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {PROXIMOS_PASSOS.map((v) => (
+          {listasParecerTab.proximoPasosRecomendado.map((v) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -338,7 +286,7 @@ export function ParecerTab({ licitacaoId, parecer, score }: Props) {
           Riscos e limitações
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {RISCOS_LIMITACOES.map((v) => (
+          {listasParecerTab.riscosLimitacoes.map((v) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -357,7 +305,7 @@ export function ParecerTab({ licitacaoId, parecer, score }: Props) {
           Evidências principais
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {EVIDENCIAS_PRINCIPAIS.map((v) => (
+          {listasParecerTab.evidenciasPrincipais.map((v) => (
             <label key={v} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
