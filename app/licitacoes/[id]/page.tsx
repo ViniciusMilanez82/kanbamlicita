@@ -8,6 +8,8 @@ import { ItensTab } from '@/components/licitacao/tabs/ItensTab'
 import { AnaliseForm } from '@/components/licitacao/tabs/AnaliseForm'
 import { HistoricoTab } from '@/components/licitacao/tabs/HistoricoTab'
 import { IaTab } from '@/components/licitacao/tabs/IaTab'
+import { ScoreTab } from '@/components/licitacao/tabs/ScoreTab'
+import { ParecerTab } from '@/components/licitacao/tabs/ParecerTab'
 import { db } from '@/lib/db'
 import type { LicitacaoDetalhe } from '@/types/licitacao-detalhe'
 
@@ -210,8 +212,21 @@ export default async function LicitacaoDetalhePage({ params, searchParams }: Pag
           {activeTab === 'ia' && (
             <IaTab licitacaoId={id} analiseIa={licitacao.analiseIa} />
           )}
-          {activeTab === 'score' && <PlaceholderTab feature="SP-5" />}
-          {activeTab === 'parecer' && <PlaceholderTab feature="SP-5" />}
+          {activeTab === 'score' && (
+            <ScoreTab
+              licitacaoId={id}
+              score={licitacao.score}
+              analise={licitacao.analise}
+              analiseIa={licitacao.analiseIa}
+            />
+          )}
+          {activeTab === 'parecer' && (
+            <ParecerTab
+              licitacaoId={id}
+              parecer={licitacao.parecer}
+              score={licitacao.score}
+            />
+          )}
         </div>
       </div>
     </>
