@@ -113,7 +113,7 @@ export function calcularScore(
       scoreModeloComercial * pesos.modeloComercial +
       scorePotencialEconomico * pesos.potencialEconomico +
       scoreQualidadeEvidencia * pesos.qualidadeEvidencia) /
-    100
+    100 // pesos devem somar 100 para scoreFinal ficar na escala 0-100
 
   return {
     scoreAderenciaDireta,
