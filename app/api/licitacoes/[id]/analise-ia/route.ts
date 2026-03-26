@@ -167,6 +167,11 @@ function serializeForPrompt(row: LicitacaoWithRelations): LicitacaoDetalhe {
           oportunidadeInexistente: row.parecer.oportunidadeInexistente,
           riscoFalsoPositivo: row.parecer.riscoFalsoPositivo,
           riscoFalsoNegativoSoTitulo: row.parecer.riscoFalsoNegativoSoTitulo,
+          ondeEstaOportunidade: row.parecer.ondeEstaOportunidade as string[],
+          solucoesQueMultiteinerPoderiaOfertar: row.parecer.solucoesQueMultiteinerPoderiaOfertar as string[],
+          proximoPasosRecomendado: row.parecer.proximoPasosRecomendado as string[],
+          riscosLimitacoes: row.parecer.riscosLimitacoes as string[],
+          evidenciasPrincipais: row.parecer.evidenciasPrincipais as string[],
         }
       : null,
     documentos: row.documentos ?? null,
