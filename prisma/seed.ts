@@ -24,6 +24,30 @@ const MUNICIPIOS: Record<string, string> = {
 }
 const MODALIDADES = ['Pregão Eletrônico', 'Concorrência', 'Tomada de Preços', 'Dispensa']
 
+const LISTAS_PARECER_TAB = {
+  ondeEstaOportunidade: ['objeto', 'tr', 'lotes', 'itens', 'planilha', 'memorial', 'anexo_tecnico'],
+  solucoesQueMultiteinerPoderiaOfertar: [
+    'containers_adaptados', 'modulos_habitacionais', 'modulos_administrativos',
+    'modulos_sanitarios', 'guaritas', 'almoxarifados', 'refeitorios',
+    'alojamentos', 'escritorios_de_obra', 'bases_operacionais', 'estruturas_temporarias_modulares',
+  ],
+  proximoPasosRecomendado: [
+    'elaborar_proposta', 'solicitar_esclarecimentos', 'visitar_local', 'contatar_gestor',
+    'acompanhar_publicacao', 'montar_consorcio', 'aguardar_nova_edicao',
+    'solicitar_visita_tecnica', 'preparar_amostra', 'cadastrar_fornecedor',
+  ],
+  riscosLimitacoes: [
+    'prazo_curto', 'exigencia_tecnica_restritiva', 'capacidade_limitada',
+    'concorrencia_acirrada', 'preco_referencia_baixo', 'localizacao_desfavoravel',
+    'habilitacao_complexa', 'historico_direcionamento', 'escopo_indefinido', 'dependencia_de_parceiro',
+  ],
+  evidenciasPrincipais: [
+    'mencao_explicita_no_tr', 'mencao_em_item_ou_lote', 'descricao_tecnica_compativel',
+    'quantitativo_compativel', 'aderencia_ao_portfolio', 'historico_de_relacionamento',
+    'preco_referencia_compativel', 'concorrente_fraco_identificado',
+  ],
+}
+
 // Distribuição das 30 licitações pelas 9 colunas
 const DISTRIBUICAO: { coluna: KanbanColuna; quantidade: number }[] = [
   { coluna: KanbanColuna.captadas_automaticamente, quantidade: 8 },
@@ -142,6 +166,25 @@ async function main() {
   }
 
   console.log(`✓ ${licitacaoIndex} licitações criadas com sucesso.`)
+
+  console.log('Criando configuracao do sistema...')
+  await prisma.configuracaoSistema.upsert({
+    where: { id: 'default' },
+    create: {
+      id: 'default',
+      pesosScore: { aderenciaDireta: 15, aderenciaAplicacao: 25, contextoOculto: 20, modeloComercial: 15, potencialEconomico: 15, qualidadeEvidencia: 10 },
+      faixasScore: { aPlus: 85, a: 70, b: 55, c: 40 },
+      segmentos: [],
+      listasParecerTab: LISTAS_PARECER_TAB,
+    },
+    update: {
+      pesosScore: { aderenciaDireta: 15, aderenciaAplicacao: 25, contextoOculto: 20, modeloComercial: 15, potencialEconomico: 15, qualidadeEvidencia: 10 },
+      faixasScore: { aPlus: 85, a: 70, b: 55, c: 40 },
+      segmentos: [],
+      listasParecerTab: LISTAS_PARECER_TAB,
+    },
+  })
+  console.log('✓ ConfiguracaoSistema criada.')
 }
 
 main()

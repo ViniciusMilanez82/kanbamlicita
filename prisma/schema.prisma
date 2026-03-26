@@ -426,3 +426,16 @@ model VerificationToken {
   @@unique([identifier, token])
   @@map("verificacao_tokens")
 }
+
+// ─── Configuração do sistema ──────────────────────────────────────────────────
+model ConfiguracaoSistema {
+  id               String   @id @default("default")
+  pesosScore       Json     @default("{\"aderenciaDireta\":15,\"aderenciaAplicacao\":25,\"contextoOculto\":20,\"modeloComercial\":15,\"potencialEconomico\":15,\"qualidadeEvidencia\":10}")
+  faixasScore      Json     @default("{\"aPlus\":85,\"a\":70,\"b\":55,\"c\":40}")
+  segmentos        Json     @default("[]")
+  listasParecerTab Json     @default("{}")
+  criadoEm         DateTime @default(now()) @map("criado_em")
+  atualizadoEm     DateTime @updatedAt @map("atualizado_em")
+
+  @@map("configuracao_sistema")
+}
