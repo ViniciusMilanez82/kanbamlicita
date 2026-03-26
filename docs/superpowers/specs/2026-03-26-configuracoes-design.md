@@ -49,12 +49,12 @@ model ConfiguracaoSistema {
 
 **Seed:** O script de seed cria o registro `default` com os valores atualmente hardcoded no sistema.
 
-**`listasParecerTab`** estrutura esperada:
+**`listasParecerTab`** estrutura esperada (chaves idênticas aos campos do model `LicitacaoParece`):
 ```json
 {
   "ondeEstaOportunidade": ["objeto", "tr", "lotes", ...],
-  "solucoesMultiteiner": ["containers_adaptados", ...],
-  "proximosPassos": ["elaborar_proposta", ...],
+  "solucoesQueMultiteinerPoderiaOfertar": ["containers_adaptados", ...],
+  "proximoPasosRecomendado": ["elaborar_proposta", ...],
   "riscosLimitacoes": ["prazo_curto", ...],
   "evidenciasPrincipais": ["mencao_explicita_no_tr", ...]
 }
@@ -66,7 +66,7 @@ model ConfiguracaoSistema {
 
 ### `lib/score/calculator.ts`
 
-A função `calcularScore` passa a aceitar um terceiro parâmetro com os pesos:
+Adicionar tipos exportados e atualizar assinaturas:
 
 ```ts
 export type ConfigPesos = {
@@ -78,22 +78,56 @@ export type ConfigPesos = {
   qualidadeEvidencia: number
 }
 
+export type ConfigFaixas = {
+  aPlus: number  // ex: 85
+  a: number      // ex: 70
+  b: number      // ex: 55
+  c: number      // ex: 40
+}
+
+export const PESOS_PADRAO: ConfigPesos = {
+  aderenciaDireta: 15,
+  aderenciaAplicacao: 25,
+  contextoOculto: 20,
+  modeloComercial: 15,
+  potencialEconomico: 15,
+  qualidadeEvidencia: 10,
+}
+
+export const FAIXAS_PADRAO: ConfigFaixas = {
+  aPlus: 85,
+  a: 70,
+  b: 55,
+  c: 40,
+}
+```
+
+A função `faixa()` passa a aceitar `ConfigFaixas`:
+```ts
+export function faixa(score: number, faixas: ConfigFaixas = FAIXAS_PADRAO): string
+```
+
+A função `calcularScore` passa a aceitar pesos e faixas com valores padrão:
+```ts
 export function calcularScore(
   analise: AnaliseDetalhe,
   analiseIaResult: AnaliseIaResult | null,
-  pesos: ConfigPesos
+  pesos: ConfigPesos = PESOS_PADRAO,
+  faixas: ConfigFaixas = FAIXAS_PADRAO
 ): ScoreSugestao
 ```
 
-Valor padrão dos pesos (usado em testes): `{ aderenciaDireta: 15, aderenciaAplicacao: 25, ... }`.
+Os valores padrão garantem retrocompatibilidade com testes existentes sem alteração de chamadas.
 
 ### `app/licitacoes/[id]/page.tsx`
 
-Carrega `ConfiguracaoSistema` via Prisma junto com os dados da licitação e passa `pesos` e `listasParecerTab` como props para `ScoreTab` e `ParecerTab`.
+Carrega `ConfiguracaoSistema` via `prisma.configuracaoSistema.findUnique({ where: { id: 'default' } })`. Se retornar `null` (seed não executado), usa `PESOS_PADRAO` e `FAIXAS_PADRAO` de `calculator.ts` como fallback sem lançar erro. Passa `configPesos`, `configFaixas` e `listasParecerTab` como props para `ScoreTab` e `ParecerTab`.
 
 ### `components/licitacao/tabs/ScoreTab.tsx`
 
-Recebe `configPesos: ConfigPesos` como prop e passa para `calcularScore`.
+Recebe `configPesos: ConfigPesos` e `configFaixas: ConfigFaixas` como props. Usa ambos:
+- No cálculo em tempo real do `scoreFinal` exibido na UI enquanto o usuário edita os campos
+- No botão "Sugerir" ao chamar `calcularScore(analise, iaResult, configPesos, configFaixas)`
 
 ### `components/licitacao/tabs/ParecerTab.tsx`
 
@@ -118,6 +152,8 @@ Recebe `listasParecerTab` como prop em vez das constantes hardcoded.
 
 **Verificação de admin:** todas as rotas `/api/admin/*` e `/api/configuracoes/*` retornam 403 se `session.user.role !== 'admin'`.
 
+**Validação de `role`:** o handler `PATCH /api/admin/usuarios/[id]` deve validar que `role`, se presente no body, seja exatamente `'user'` ou `'admin'`; caso contrário retornar 400.
+
 **Senha:** hasheada com `bcryptjs` (já dependência do projeto via C2A).
 
 ---
@@ -132,7 +168,7 @@ Recebe `listasParecerTab` como prop em vez das constantes hardcoded.
 | Modificar | `lib/score/calculator.ts` | Aceitar `ConfigPesos` como parâmetro |
 | Modificar | `__tests__/lib/score/calculator.test.ts` | Passar pesos nos testes existentes |
 | Modificar | `app/licitacoes/[id]/page.tsx` | Carregar config e passar como props |
-| Modificar | `components/licitacao/tabs/ScoreTab.tsx` | Receber `configPesos` como prop |
+| Modificar | `components/licitacao/tabs/ScoreTab.tsx` | Receber `configPesos` e `configFaixas` como props |
 | Modificar | `components/licitacao/tabs/ParecerTab.tsx` | Receber `listasParecerTab` como prop |
 | Criar | `app/configuracoes/page.tsx` | Server Component — roteamento de abas + auth |
 | Criar | `components/configuracoes/ConfigTabs.tsx` | Barra de navegação de abas |
