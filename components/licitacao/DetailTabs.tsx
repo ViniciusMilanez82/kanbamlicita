@@ -13,9 +13,9 @@ const TABS: Tab[] = [
   { key: 'itens', label: 'Itens / Lotes' },
   { key: 'analise', label: 'Análise' },
   { key: 'historico', label: 'Histórico' },
-  { key: 'ia', label: 'IA', badge: 'SP-4' },
-  { key: 'score', label: 'Score', badge: 'SP-5' },
-  { key: 'parecer', label: 'Parecer', badge: 'SP-5' },
+  { key: 'ia', label: 'IA' },
+  { key: 'score', label: 'Score' },
+  { key: 'parecer', label: 'Parecer' },
 ]
 
 type Props = {

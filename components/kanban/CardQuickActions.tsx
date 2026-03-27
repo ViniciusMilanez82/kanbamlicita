@@ -1,5 +1,6 @@
 import { ArrowRight, Brain, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 import type { LicitacaoComCard } from '@/types/licitacao'
 
 type Props = {
@@ -24,16 +25,15 @@ export function CardQuickActions({ licitacao, onMover }: Props) {
         <ArrowRight className="h-3 w-3 mr-1" />
         Mover
       </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        className="h-7 text-xs text-slate-400 cursor-not-allowed"
-        disabled
-        title="Análise por IA disponível no SP-4"
+      <Link
+        href={`/licitacoes/${licitacao.id}?tab=ia`}
+        onClick={(e) => e.stopPropagation()}
       >
-        <Brain className="h-3 w-3 mr-1" />
-        IA
-      </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs">
+          <Brain className="h-3 w-3 mr-1" />
+          IA
+        </Button>
+      </Link>
       <a
         href={`/licitacoes/${licitacao.id}`}
         target="_blank"
