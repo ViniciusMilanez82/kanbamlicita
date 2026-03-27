@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
+import { Clock } from 'lucide-react'
 
 type ConfigPesos = {
   aderenciaDireta: number; aderenciaAplicacao: number; contextoOculto: number
@@ -16,6 +17,40 @@ type ListasParecerTab = {
 }
 type Fonte = {
   id: string; nome: string; tipo: string; endpointBase: string | null; ativo: boolean; ultimaSincronizacao: string | null
+}
+
+type Execucao = {
+  id: string
+  status: string
+  iniciadoEm: string
+  finalizadoEm: string | null
+  totalLidos: number
+  totalNovos: number
+  totalAtualizados: number
+  totalDescartadosDuplicidade: number
+  totalErros: number
+  logResumo: string | null
+}
+
+type HistoricoState = {
+  aberto: boolean
+  loading: boolean
+  execucoes: Execucao[] | null
+  erro: string | null
+}
+
+const STATUS_BADGE: Record<string, string> = {
+  concluido: 'bg-green-100 text-green-700',
+  rodando: 'bg-blue-100 text-blue-700',
+  erro: 'bg-red-100 text-red-700',
+}
+
+function formatDuracao(inicio: string, fim: string | null): string {
+  if (!fim) return '—'
+  const ms = new Date(fim).getTime() - new Date(inicio).getTime()
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s`
+  return `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
 type Props = {
@@ -70,6 +105,43 @@ export function SistemaTab({ initialPesos, initialFaixas, initialSegmentos, init
   const [novaFonteEndpoint, setNovaFonteEndpoint] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [historicos, setHistoricos] = useState<Record<string, HistoricoState>>({})
+
+  async function handleToggleHistorico(fonteId: string) {
+    const atual = historicos[fonteId]
+
+    if (atual?.aberto) {
+      setHistoricos((prev) => ({ ...prev, [fonteId]: { ...atual, aberto: false } }))
+      return
+    }
+
+    // Se já tem dados, só abre
+    if (atual?.execucoes !== null && atual?.execucoes !== undefined) {
+      setHistoricos((prev) => ({ ...prev, [fonteId]: { ...atual, aberto: true } }))
+      return
+    }
+
+    // Fetch
+    setHistoricos((prev) => ({
+      ...prev,
+      [fonteId]: { aberto: true, loading: true, execucoes: null, erro: null },
+    }))
+
+    try {
+      const res = await fetch(`/api/admin/fontes/${fonteId}/execucoes`)
+      if (!res.ok) throw new Error('Erro ao buscar execuções')
+      const { execucoes } = await res.json() as { execucoes: Execucao[] }
+      setHistoricos((prev) => ({
+        ...prev,
+        [fonteId]: { aberto: true, loading: false, execucoes, erro: null },
+      }))
+    } catch (e) {
+      setHistoricos((prev) => ({
+        ...prev,
+        [fonteId]: { aberto: true, loading: false, execucoes: [], erro: String(e) },
+      }))
+    }
+  }
 
   const somaPesos = Object.values(pesos).reduce((a, b) => a + b, 0)
 
@@ -250,25 +322,94 @@ export function SistemaTab({ initialPesos, initialFaixas, initialSegmentos, init
               <th className="text-left py-2 pr-3">Endpoint</th>
               <th className="text-left py-2 pr-3">Último sync</th>
               <th className="text-left py-2">Status</th>
+              <th className="text-left py-2">Histórico</th>
             </tr>
           </thead>
           <tbody>
-            {fontes.map((f) => (
-              <tr key={f.id} className="border-b border-slate-100">
-                <td className="py-2 pr-3">{f.nome}</td>
-                <td className="py-2 pr-3 text-slate-500">{f.tipo}</td>
-                <td className="py-2 pr-3 text-slate-400 truncate max-w-[150px]">{f.endpointBase ?? '—'}</td>
-                <td className="py-2 pr-3 text-slate-400">{f.ultimaSincronizacao ? new Date(f.ultimaSincronizacao).toLocaleDateString('pt-BR') : '—'}</td>
-                <td className="py-2">
-                  <button
-                    onClick={() => handleToggleFonte(f.id, f.ativo)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${f.ativo ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
-                  >
-                    {f.ativo ? 'ativo' : 'inativo'}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {fontes.map((f) => {
+              const hist = historicos[f.id]
+              return (
+                <React.Fragment key={f.id}>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 pr-3">{f.nome}</td>
+                    <td className="py-2 pr-3 text-slate-500">{f.tipo}</td>
+                    <td className="py-2 pr-3 text-slate-400 truncate max-w-[150px]">{f.endpointBase ?? '—'}</td>
+                    <td className="py-2 pr-3 text-slate-400">{f.ultimaSincronizacao ? new Date(f.ultimaSincronizacao).toLocaleDateString('pt-BR') : '—'}</td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => handleToggleFonte(f.id, f.ativo)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${f.ativo ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
+                      >
+                        {f.ativo ? 'ativo' : 'inativo'}
+                      </button>
+                    </td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => handleToggleHistorico(f.id)}
+                        className="flex items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
+                        title="Ver histórico de execuções"
+                      >
+                        <Clock className="h-3 w-3" />
+                        {hist?.aberto ? 'Fechar' : 'Histórico'}
+                      </button>
+                    </td>
+                  </tr>
+                  {hist?.aberto && (
+                    <tr>
+                      <td colSpan={6} className="pb-3 pt-1 px-2 bg-slate-50">
+                        {hist.loading && (
+                          <p className="text-xs text-slate-400 italic">Carregando…</p>
+                        )}
+                        {hist.erro && (
+                          <p className="text-xs text-red-500">{hist.erro}</p>
+                        )}
+                        {!hist.loading && !hist.erro && hist.execucoes !== null && (
+                          hist.execucoes.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">Nenhuma execução registrada para esta fonte.</p>
+                          ) : (
+                            <table className="w-full text-[10px] border-collapse">
+                              <thead>
+                                <tr className="border-b border-slate-200 text-slate-400">
+                                  <th className="text-left py-1 pr-2 font-medium">Data</th>
+                                  <th className="text-left py-1 pr-2 font-medium">Status</th>
+                                  <th className="text-left py-1 pr-2 font-medium">Duração</th>
+                                  <th className="text-right py-1 pr-2 font-medium">Lidos</th>
+                                  <th className="text-right py-1 pr-2 font-medium">Novos</th>
+                                  <th className="text-right py-1 pr-2 font-medium">Atualizados</th>
+                                  <th className="text-right py-1 font-medium">Erros</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {hist.execucoes.map((e) => (
+                                  <tr key={e.id}>
+                                    <td className="py-1 pr-2 text-slate-500 whitespace-nowrap">
+                                      {new Date(e.iniciadoEm).toLocaleString('pt-BR')}
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded font-medium ${STATUS_BADGE[e.status] ?? 'bg-gray-50 text-gray-400'}`}
+                                        title={e.logResumo ?? undefined}
+                                      >
+                                        {e.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-1 pr-2 text-slate-400">{formatDuracao(e.iniciadoEm, e.finalizadoEm)}</td>
+                                    <td className="py-1 pr-2 text-right text-slate-600">{e.totalLidos}</td>
+                                    <td className="py-1 pr-2 text-right text-green-600">{e.totalNovos}</td>
+                                    <td className="py-1 pr-2 text-right text-blue-600">{e.totalAtualizados}</td>
+                                    <td className="py-1 text-right text-red-500">{e.totalErros}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
           </tbody>
         </table>
         <div className="border border-slate-200 rounded p-3 space-y-2 bg-slate-50">
