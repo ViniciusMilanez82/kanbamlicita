@@ -205,5 +205,6 @@ function serializeForPrompt(row: LicitacaoWithRelations): LicitacaoDetalhe {
       criadoEm: m.criadoEm.toISOString(),
     })),
     analiseIa: null, // não necessário para o prompt
+    sinais: [], // não necessário para o prompt
   }
 }
