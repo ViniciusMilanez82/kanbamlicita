@@ -27,6 +27,7 @@ const FILTROS_INICIAIS: FiltrosKanban = {
   uf: 'todas',
   urgentes: false,
   riscoAltoFn: false,
+  responsavelId: '',
 }
 
 type MoveState = {

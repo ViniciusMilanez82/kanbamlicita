@@ -12,6 +12,7 @@ export async function GET() {
             urgente: true,
             bloqueado: true,
             motivoBloqueio: true,
+            responsavel: { select: { id: true, name: true } },
           },
         },
         score: {
