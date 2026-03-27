@@ -21,6 +21,7 @@ export type CardInfo = {
   urgente: boolean
   bloqueado: boolean
   motivoBloqueio: string | null
+  responsavel: { id: string; name: string | null } | null
 }
 
 export type LicitacaoComCard = {

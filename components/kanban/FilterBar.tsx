@@ -11,6 +11,7 @@ export type FiltrosKanban = {
   uf: string
   urgentes: boolean
   riscoAltoFn: boolean
+  responsavelId: string   // '' = todos
 }
 
 type Props = {
