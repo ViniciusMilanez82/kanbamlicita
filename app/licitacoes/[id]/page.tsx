@@ -15,7 +15,7 @@ import type { LicitacaoDetalhe } from '@/types/licitacao-detalhe'
 import { PESOS_PADRAO, FAIXAS_PADRAO } from '@/lib/score/calculator'
 import type { ConfigPesos, ConfigFaixas } from '@/lib/score/calculator'
 
-const VALID_TABS = ['resumo', 'documentos', 'itens', 'analise', 'historico', 'ia', 'score', 'parecer'] as const
+const VALID_TABS = ['resumo', 'documentos', 'itens', 'analise', 'historico', 'ia', 'sinais', 'score', 'parecer'] as const
 type Tab = typeof VALID_TABS[number]
 
 async function getLicitacao(id: string): Promise<{

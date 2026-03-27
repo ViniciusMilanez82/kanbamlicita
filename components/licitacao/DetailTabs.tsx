@@ -14,6 +14,7 @@ const TABS: Tab[] = [
   { key: 'analise', label: 'Análise' },
   { key: 'historico', label: 'Histórico' },
   { key: 'ia', label: 'IA' },
+  { key: 'sinais', label: 'Sinais' },
   { key: 'score', label: 'Score' },
   { key: 'parecer', label: 'Parecer' },
 ]

@@ -123,6 +123,18 @@ export type AnaliseIaDetalhe = {
   criadoEm: string
 } | null
 
+export type SinalDetalhe = {
+  id: string
+  categoria: string
+  subcategoria: string | null
+  sinal: string
+  nivel: string | null
+  trecho: string | null
+  fonteDocumento: string | null
+  relevancia: string | null
+  criadoEm: string
+}
+
 export type LicitacaoDetalhe = {
   id: string
   orgao: string | null
@@ -171,4 +183,5 @@ export type LicitacaoDetalhe = {
   analise: AnaliseDetalhe
   movimentacoes: MovimentacaoDetalhe[]
   analiseIa: AnaliseIaDetalhe
+  sinais: SinalDetalhe[]
 }
