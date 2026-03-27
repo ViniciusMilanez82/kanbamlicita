@@ -159,8 +159,10 @@ async function getLicitacao(id: string): Promise<{
       quantitativo: item.quantitativo ? Number(item.quantitativo) : null,
       unidade: item.unidade,
       aderencia: item.aderencia,
+      tipoAderencia: item.tipoAderencia ?? null,
       prioridade: item.prioridade,
       valorEstimadoItem: item.valorEstimadoItem ? Number(item.valorEstimadoItem) : null,
+      motivo: item.motivo ?? null,
       observacoes: item.observacoes,
     })),
     analise: row.analise

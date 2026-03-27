@@ -77,8 +77,10 @@ export type ItemDetalhe = {
   quantitativo: number | null
   unidade: string | null
   aderencia: string
+  tipoAderencia: string | null
   prioridade: string
   valorEstimadoItem: number | null
+  motivo: string | null
   observacoes: string | null
 }
 
