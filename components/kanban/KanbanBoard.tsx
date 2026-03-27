@@ -27,6 +27,7 @@ const FILTROS_INICIAIS: FiltrosKanban = {
   uf: 'todas',
   urgentes: false,
   riscoAltoFn: false,
+  responsavelId: '',
 }
 
 type MoveState = {
@@ -55,6 +56,13 @@ export function KanbanBoard({ initialData }: { initialData: LicitacaoComCard[] }
     queryKey: ['kanban-metricas'],
     queryFn: () => fetch('/api/kanban/metricas').then((r) => r.json()),
   })
+
+  const { data: usuariosData } = useQuery<{ usuarios: { id: string; name: string | null }[] }>({
+    queryKey: ['usuarios-ativos'],
+    queryFn: () => fetch('/api/usuarios-ativos').then((r) => r.json()),
+    staleTime: 60_000,
+  })
+  const usuariosAtivos = usuariosData?.usuarios ?? []
 
   const moverMutation = useMutation({
     mutationFn: async (input: { cardId: string; colunaDestino: string; motivo?: string }) => {
@@ -93,6 +101,7 @@ export function KanbanBoard({ initialData }: { initialData: LicitacaoComCard[] }
       if (filtros.uf !== 'todas' && l.uf !== filtros.uf) return false
       if (filtros.urgentes && !l.card.urgente) return false
       if (filtros.riscoAltoFn && l.score?.falsoNegativoNivelRisco !== 'alto') return false
+      if (filtros.responsavelId && l.card.responsavel?.id !== filtros.responsavelId) return false
       return true
     })
   }, [licitacoes, filtros])
@@ -180,6 +189,7 @@ export function KanbanBoard({ initialData }: { initialData: LicitacaoComCard[] }
         onChange={setFiltros}
         segmentosDisponiveis={segmentosDisponiveis}
         ufsDisponiveis={ufsDisponiveis}
+        usuariosAtivos={usuariosAtivos}
       />
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">

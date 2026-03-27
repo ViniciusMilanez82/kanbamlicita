@@ -13,6 +13,7 @@ async function getLicitacoes(): Promise<LicitacaoComCard[]> {
           urgente: true,
           bloqueado: true,
           motivoBloqueio: true,
+          responsavel: { select: { id: true, name: true } },
         },
       },
       score: {

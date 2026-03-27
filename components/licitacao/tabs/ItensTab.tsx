@@ -16,6 +16,13 @@ const PRIORIDADE_BADGE: Record<string, string> = {
   baixa: 'bg-slate-100 text-slate-600',
 }
 
+const TIPO_ADERENCIA_BADGE: Record<string, string> = {
+  direta: 'bg-blue-100 text-blue-700',
+  aplicacao: 'bg-green-100 text-green-700',
+  contexto_oculto: 'bg-yellow-100 text-yellow-700',
+  nenhuma: 'bg-gray-50 text-gray-400',
+}
+
 export function ItensTab({ itens }: Props) {
   if (itens.length === 0) {
     return (
@@ -30,7 +37,7 @@ export function ItensTab({ itens }: Props) {
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b">
-            {['Tipo', 'ID', 'Descrição', 'Qtd', 'Unid.', 'Aderência', 'Prioridade', 'Valor Est.'].map(
+            {['Tipo', 'ID', 'Descrição', 'Qtd', 'Unid.', 'Aderência', 'Tipo Ader.', 'Prioridade', 'Motivo', 'Valor Est.'].map(
               (h) => (
                 <th
                   key={h}
@@ -69,6 +76,13 @@ export function ItensTab({ itens }: Props) {
                 </span>
               </td>
               <td className="py-2 pr-3">
+                {item.tipoAderencia ? (
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${TIPO_ADERENCIA_BADGE[item.tipoAderencia] ?? 'bg-gray-50 text-gray-400'}`}>
+                    {item.tipoAderencia}
+                  </span>
+                ) : '—'}
+              </td>
+              <td className="py-2 pr-3">
                 <span
                   className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                     PRIORIDADE_BADGE[item.prioridade] ?? 'bg-gray-50 text-gray-400'
@@ -76,6 +90,13 @@ export function ItensTab({ itens }: Props) {
                 >
                   {item.prioridade}
                 </span>
+              </td>
+              <td className="py-2 pr-3 text-slate-500 max-w-[160px]">
+                {item.motivo ? (
+                  <span title={item.motivo} className="block truncate">
+                    {item.motivo.length > 40 ? item.motivo.slice(0, 40) + '…' : item.motivo}
+                  </span>
+                ) : '—'}
               </td>
               <td className="py-2 text-slate-700 whitespace-nowrap">
                 {formatCurrency(item.valorEstimadoItem)}

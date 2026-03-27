@@ -8,6 +8,7 @@ import { ItensTab } from '@/components/licitacao/tabs/ItensTab'
 import { AnaliseForm } from '@/components/licitacao/tabs/AnaliseForm'
 import { HistoricoTab } from '@/components/licitacao/tabs/HistoricoTab'
 import { IaTab } from '@/components/licitacao/tabs/IaTab'
+import { SinaisTab } from '@/components/licitacao/tabs/SinaisTab'
 import { ScoreTab } from '@/components/licitacao/tabs/ScoreTab'
 import { ParecerTab } from '@/components/licitacao/tabs/ParecerTab'
 import { db } from '@/lib/db'
@@ -15,7 +16,7 @@ import type { LicitacaoDetalhe } from '@/types/licitacao-detalhe'
 import { PESOS_PADRAO, FAIXAS_PADRAO } from '@/lib/score/calculator'
 import type { ConfigPesos, ConfigFaixas } from '@/lib/score/calculator'
 
-const VALID_TABS = ['resumo', 'documentos', 'itens', 'analise', 'historico', 'ia', 'score', 'parecer'] as const
+const VALID_TABS = ['resumo', 'documentos', 'itens', 'analise', 'historico', 'ia', 'sinais', 'score', 'parecer'] as const
 type Tab = typeof VALID_TABS[number]
 
 async function getLicitacao(id: string): Promise<{
@@ -44,6 +45,7 @@ async function getLicitacao(id: string): Promise<{
         orderBy: { criadoEm: 'desc' },
         take: 1,
       },
+      sinais: { orderBy: { criadoEm: 'asc' } },
     },
   })
 
@@ -157,8 +159,10 @@ async function getLicitacao(id: string): Promise<{
       quantitativo: item.quantitativo ? Number(item.quantitativo) : null,
       unidade: item.unidade,
       aderencia: item.aderencia,
+      tipoAderencia: item.tipoAderencia ?? null,
       prioridade: item.prioridade,
       valorEstimadoItem: item.valorEstimadoItem ? Number(item.valorEstimadoItem) : null,
+      motivo: item.motivo ?? null,
       observacoes: item.observacoes,
     })),
     analise: row.analise
@@ -203,6 +207,17 @@ async function getLicitacao(id: string): Promise<{
           criadoEm: row.analisesIa[0].criadoEm.toISOString(),
         }
       : null,
+    sinais: row.sinais.map((s) => ({
+      id: s.id,
+      categoria: s.categoria,
+      subcategoria: s.subcategoria ?? null,
+      sinal: s.sinal,
+      nivel: s.nivel ?? null,
+      trecho: s.trecho ?? null,
+      fonteDocumento: s.fonteDocumento ?? null,
+      relevancia: s.relevancia ?? null,
+      criadoEm: s.criadoEm.toISOString(),
+    })),
   }
 
   return { licitacao, configPesos, configFaixas, listasParecerTab }
@@ -249,6 +264,7 @@ export default async function LicitacaoDetalhePage({ params, searchParams }: Pag
           {activeTab === 'ia' && (
             <IaTab licitacaoId={id} analiseIa={licitacao.analiseIa} />
           )}
+          {activeTab === 'sinais' && <SinaisTab sinais={licitacao.sinais} />}
           {activeTab === 'score' && (
             <ScoreTab
               licitacaoId={id}

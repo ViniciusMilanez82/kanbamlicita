@@ -183,8 +183,10 @@ function serializeForPrompt(row: LicitacaoWithRelations): LicitacaoDetalhe {
       quantitativo: item.quantitativo ? Number(item.quantitativo) : null,
       unidade: item.unidade,
       aderencia: item.aderencia,
+      tipoAderencia: item.tipoAderencia ?? null,
       prioridade: item.prioridade,
       valorEstimadoItem: item.valorEstimadoItem ? Number(item.valorEstimadoItem) : null,
+      motivo: item.motivo ?? null,
       observacoes: item.observacoes,
     })),
     analise: row.analise
@@ -203,5 +205,6 @@ function serializeForPrompt(row: LicitacaoWithRelations): LicitacaoDetalhe {
       criadoEm: m.criadoEm.toISOString(),
     })),
     analiseIa: null, // não necessário para o prompt
+    sinais: [], // não necessário para o prompt
   }
 }

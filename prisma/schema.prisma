@@ -91,6 +91,7 @@ model KanbanCard {
 
   licitacao     Licitacao            @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
   movimentacoes KanbanMovimentacao[]
+  responsavel   User?                @relation("KanbanCardResponsavel", fields: [responsavelId], references: [id])
 
   @@map("kanban_cards")
 }
@@ -378,8 +379,9 @@ model User {
   criadoEm      DateTime  @default(now()) @map("criado_em")
   atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
 
-  accounts Account[]
-  sessions Session[]
+  accounts    Account[]
+  sessions    Session[]
+  kanbanCards KanbanCard[] @relation("KanbanCardResponsavel")
 
   @@map("usuarios")
 }

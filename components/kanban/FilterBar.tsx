@@ -11,6 +11,7 @@ export type FiltrosKanban = {
   uf: string
   urgentes: boolean
   riscoAltoFn: boolean
+  responsavelId: string   // '' = todos
 }
 
 type Props = {
@@ -18,9 +19,10 @@ type Props = {
   onChange: (filtros: FiltrosKanban) => void
   segmentosDisponiveis: string[]
   ufsDisponiveis: string[]
+  usuariosAtivos: { id: string; name: string | null }[]
 }
 
-export function FilterBar({ filtros, onChange, segmentosDisponiveis, ufsDisponiveis }: Props) {
+export function FilterBar({ filtros, onChange, segmentosDisponiveis, ufsDisponiveis, usuariosAtivos }: Props) {
   const update = (partial: Partial<FiltrosKanban>) =>
     onChange({ ...filtros, ...partial })
 
@@ -68,6 +70,21 @@ export function FilterBar({ filtros, onChange, segmentosDisponiveis, ufsDisponiv
           <SelectItem value="todas">Todas</SelectItem>
           {ufsDisponiveis.map((u) => (
             <SelectItem key={u} value={u}>{u}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filtros.responsavelId === '' ? 'todos' : filtros.responsavelId}
+        onValueChange={(v) => update({ responsavelId: v == null || v === 'todos' ? '' : v })}
+      >
+        <SelectTrigger className="h-8 text-xs w-40">
+          <SelectValue placeholder="Responsável" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos</SelectItem>
+          {usuariosAtivos.map((u) => (
+            <SelectItem key={u.id} value={u.id}>{u.name ?? u.id}</SelectItem>
           ))}
         </SelectContent>
       </Select>

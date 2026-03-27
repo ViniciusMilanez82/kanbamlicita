@@ -77,8 +77,10 @@ export type ItemDetalhe = {
   quantitativo: number | null
   unidade: string | null
   aderencia: string
+  tipoAderencia: string | null
   prioridade: string
   valorEstimadoItem: number | null
+  motivo: string | null
   observacoes: string | null
 }
 
@@ -122,6 +124,18 @@ export type AnaliseIaDetalhe = {
   resumoTexto: string | null
   criadoEm: string
 } | null
+
+export type SinalDetalhe = {
+  id: string
+  categoria: string
+  subcategoria: string | null
+  sinal: string
+  nivel: string | null
+  trecho: string | null
+  fonteDocumento: string | null
+  relevancia: string | null
+  criadoEm: string
+}
 
 export type LicitacaoDetalhe = {
   id: string
@@ -171,4 +185,5 @@ export type LicitacaoDetalhe = {
   analise: AnaliseDetalhe
   movimentacoes: MovimentacaoDetalhe[]
   analiseIa: AnaliseIaDetalhe
+  sinais: SinalDetalhe[]
 }
