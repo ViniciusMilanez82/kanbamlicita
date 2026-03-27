@@ -44,6 +44,7 @@ async function getLicitacao(id: string): Promise<{
         orderBy: { criadoEm: 'desc' },
         take: 1,
       },
+      sinais: { orderBy: { criadoEm: 'asc' } },
     },
   })
 
@@ -203,6 +204,17 @@ async function getLicitacao(id: string): Promise<{
           criadoEm: row.analisesIa[0].criadoEm.toISOString(),
         }
       : null,
+    sinais: row.sinais.map((s) => ({
+      id: s.id,
+      categoria: s.categoria,
+      subcategoria: s.subcategoria ?? null,
+      sinal: s.sinal,
+      nivel: s.nivel ?? null,
+      trecho: s.trecho ?? null,
+      fonteDocumento: s.fonteDocumento ?? null,
+      relevancia: s.relevancia ?? null,
+      criadoEm: s.criadoEm.toISOString(),
+    })),
   }
 
   return { licitacao, configPesos, configFaixas, listasParecerTab }
