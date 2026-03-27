@@ -1,4 +1,7 @@
-import { AlertTriangle, Zap } from 'lucide-react'
+'use client'
+
+import { useState, useRef } from 'react'
+import { AlertTriangle, UserCircle, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { CardQuickActions } from './CardQuickActions'
 import type { LicitacaoComCard } from '@/types/licitacao'
@@ -31,6 +34,40 @@ export function LicitacaoCard({ licitacao, onMover }: Props) {
   const fnAlto = score?.falsoNegativoNivelRisco === 'alto'
   const faixa = score?.faixaClassificacao
   const scoreVal = score ? Number(score.scoreFinal) : null
+
+  const [responsavel, setResponsavel] = useState(licitacao.card.responsavel)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [usuarios, setUsuarios] = useState<{ id: string; name: string | null }[]>([])
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  async function handleClickResponsavel(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (usuarios.length === 0) {
+      const res = await fetch('/api/usuarios-ativos')
+      const { usuarios: u } = await res.json()
+      setUsuarios(u)
+    }
+    setShowDropdown((v) => !v)
+  }
+
+  async function handleSelectResponsavel(e: React.ChangeEvent<HTMLSelectElement>) {
+    e.stopPropagation()
+    const val = e.target.value
+    const responsavelId = val === '' ? null : val
+    const prevResponsavel = responsavel
+    // Optimistic update
+    setResponsavel(usuarios.find((u) => u.id === responsavelId) ?? null)
+    setShowDropdown(false)
+    const res = await fetch(`/api/kanban/cards/${licitacao.card.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ responsavelId }),
+    })
+    if (!res.ok) {
+      // Rollback
+      setResponsavel(prevResponsavel)
+    }
+  }
 
   return (
     <div className={`rounded-lg border p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer text-xs ${FAIXA_CARD_BG[faixa ?? ''] ?? 'bg-white border-slate-200'}`}>
@@ -104,6 +141,32 @@ export function LicitacaoCard({ licitacao, onMover }: Props) {
       ) : (
         <p className="mt-2 text-slate-400 italic">Score: — · Sem classificação</p>
       )}
+
+      {/* Responsável */}
+      <div className="relative mt-2">
+        <button
+          onClick={handleClickResponsavel}
+          className="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <UserCircle className="h-3 w-3" />
+          <span className="text-[10px]">{responsavel?.name ?? '— Sem responsável'}</span>
+        </button>
+        {showDropdown && (
+          <div ref={dropdownRef} className="absolute z-10 top-5 left-0 bg-white border border-slate-200 rounded shadow-md min-w-[160px]">
+            <select
+              size={Math.min(usuarios.length + 1, 6)}
+              onChange={handleSelectResponsavel}
+              className="w-full text-xs p-1 outline-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="">— Sem responsável</option>
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.id}>{u.name ?? u.id}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* Ações */}
       <CardQuickActions licitacao={licitacao} onMover={onMover} />
