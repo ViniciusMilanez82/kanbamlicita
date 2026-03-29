@@ -18,20 +18,20 @@ export function RespostaIa({ acao }: { acao: AcaoIa }) {
 
       {json ? (
         <div className="space-y-2 text-sm">
-          {json.relevancia && (
-            <p><strong>Relevância:</strong> {json.relevancia as string}</p>
+          {!!json.relevancia && (
+            <p><strong>Relevância:</strong> {String(json.relevancia)}</p>
           )}
-          {json.recomendacao && (
-            <p><strong>Recomendação:</strong> {json.recomendacao as string}</p>
+          {!!json.recomendacao && (
+            <p><strong>Recomendação:</strong> {String(json.recomendacao)}</p>
           )}
-          {json.justificativa && (
-            <p className="text-slate-600">{json.justificativa as string}</p>
+          {!!json.justificativa && (
+            <p className="text-slate-600">{String(json.justificativa)}</p>
           )}
-          {json.resumo && (
-            <p className="text-slate-600">{json.resumo as string}</p>
+          {!!json.resumo && (
+            <p className="text-slate-600">{String(json.resumo)}</p>
           )}
-          {json.estrategia && (
-            <p className="text-slate-600">{json.estrategia as string}</p>
+          {!!json.estrategia && (
+            <p className="text-slate-600">{String(json.estrategia)}</p>
           )}
           {Array.isArray(json.oportunidades) && json.oportunidades.length > 0 && (
             <div>

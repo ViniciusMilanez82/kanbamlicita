@@ -201,8 +201,8 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
             <div className="space-y-6">
               {licitacao.card && (
                 <div className="flex flex-wrap gap-1.5">
-                  <Badge style={{ backgroundColor: licitacao.card.colunaCor }} className="text-white">
-                    {licitacao.card.colunaNome}
+                  <Badge style={{ backgroundColor: licitacao.card.coluna?.cor }} className="text-white">
+                    {licitacao.card.coluna?.nome}
                   </Badge>
                   {licitacao.card.urgente && <Badge variant="destructive">Urgente</Badge>}
                 </div>

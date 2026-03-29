@@ -13,7 +13,7 @@ export function getIaProvider(): IaProvider {
       instance = new AnthropicProvider();
     }
   }
-  return instance;
+  return instance!;
 }
 
 export function setIaProvider(p: IaProvider) {

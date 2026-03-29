@@ -11,6 +11,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
 import { FilterBar } from "./FilterBar";
+import { LicitacaoDrawer } from "@/components/detalhe/LicitacaoDrawer";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -97,14 +98,6 @@ export function KanbanBoard() {
     }
   }
 
-  // Dynamically import LicitacaoDrawer to avoid build errors if it doesn't exist yet
-  let DrawerComponent: any = null;
-  try {
-    DrawerComponent = require("@/components/detalhe/LicitacaoDrawer").LicitacaoDrawer;
-  } catch {
-    // Will be available after Task 14
-  }
-
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
@@ -130,8 +123,8 @@ export function KanbanBoard() {
         </div>
       </DndContext>
 
-      {drawerLicitacaoId && DrawerComponent && (
-        <DrawerComponent
+      {drawerLicitacaoId && (
+        <LicitacaoDrawer
           licitacaoId={drawerLicitacaoId}
           onClose={() => setDrawerLicitacaoId(null)}
         />
