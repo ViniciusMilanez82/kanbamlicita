@@ -79,7 +79,11 @@
       "Bash(NODE_OPTIONS=--experimental-vm-modules npx jest __tests__/api/kanban-cards-patch.test.ts --no-coverage)",
       "Bash(node -e \":*)",
       "Bash(find /c/Users/vinic/OneDrive/PROJETOS/APPS/kanbamlicita/.claude/worktrees/heuristic-satoshi -name auth.ts -o -name auth.*.ts)",
-      "Bash(find /c/Users/vinic/OneDrive/PROJETOS/APPS/kanbamlicita/.claude/worktrees/heuristic-satoshi/components -type f -name *.tsx)"
+      "Bash(find /c/Users/vinic/OneDrive/PROJETOS/APPS/kanbamlicita/.claude/worktrees/heuristic-satoshi/components -type f -name *.tsx)",
+      "Bash(gh pr:*)",
+      "Bash(gh auth:*)",
+      "Bash(rm -f lib/kanban.ts)",
+      "Bash(rm -rf lib/score lib/llm)"
     ]
   }
 }
