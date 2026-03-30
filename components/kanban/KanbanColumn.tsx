@@ -4,24 +4,26 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { KanbanCard } from "./KanbanCard";
 
+interface CardData {
+  id: string;
+  licitacao: {
+    id: string;
+    titulo: string;
+    orgao: string | null;
+    uf: string | null;
+    valorEstimado: number | null;
+    dataSessao: string | null;
+    modalidade: string | null;
+  };
+  urgente: boolean;
+  responsavel: { name: string | null } | null;
+}
+
 interface ColumnData {
   id: string;
   nome: string;
   cor: string;
-  cards: Array<{
-    id: string;
-    licitacao: {
-      id: string;
-      titulo: string;
-      orgao: string | null;
-      uf: string | null;
-      valorEstimado: number | null;
-      dataSessao: string | null;
-      modalidade: string | null;
-    };
-    urgente: boolean;
-    responsavel: { name: string | null } | null;
-  }>;
+  cards: CardData[];
 }
 
 interface KanbanColumnProps {
@@ -34,7 +36,9 @@ export function KanbanColumn({ column, onCardClick }: KanbanColumnProps) {
 
   return (
     <div
-      className={`flex w-72 shrink-0 flex-col rounded-lg bg-slate-50 ${isOver ? "ring-2 ring-blue-400" : ""}`}
+      className={`flex w-72 shrink-0 flex-col rounded-lg transition-all duration-150
+        ${isOver ? "bg-blue-50 ring-2 ring-blue-400 scale-[1.01]" : "bg-slate-50"}
+      `}
     >
       <div
         className="flex items-center justify-between rounded-t-lg px-3 py-2"
@@ -48,7 +52,10 @@ export function KanbanColumn({ column, onCardClick }: KanbanColumnProps) {
 
       <div
         ref={setNodeRef}
-        className="flex-1 space-y-2 overflow-y-auto p-2"
+        className={`flex-1 space-y-2 overflow-y-auto p-2 transition-colors duration-150
+          ${isOver ? "bg-blue-50/50" : ""}
+          ${column.cards.length === 0 ? "min-h-[80px]" : ""}
+        `}
         style={{ maxHeight: "calc(100vh - 180px)" }}
       >
         <SortableContext items={column.cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -60,6 +67,12 @@ export function KanbanColumn({ column, onCardClick }: KanbanColumnProps) {
             />
           ))}
         </SortableContext>
+
+        {column.cards.length === 0 && !isOver && (
+          <p className="py-4 text-center text-xs text-slate-400">
+            Arraste cards para cá
+          </p>
+        )}
       </div>
     </div>
   );
