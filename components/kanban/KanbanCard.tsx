@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,8 @@ interface KanbanCardProps {
 
 /** Card arrastável dentro da coluna */
 export function KanbanCard({ card, onClick }: KanbanCardProps) {
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+
   const {
     attributes,
     listeners,
@@ -49,9 +52,23 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      onClick={onClick}
-      className={`cursor-grab active:cursor-grabbing rounded-lg border bg-white p-3 shadow-sm transition-shadow touch-none
-        ${isDragging ? "shadow-lg ring-2 ring-blue-300" : "hover:shadow-md"}
+      onPointerDown={(e) => {
+        pointerStart.current = { x: e.clientX, y: e.clientY };
+        // Chama o handler original do dnd-kit
+        listeners?.onPointerDown?.(e as any);
+      }}
+      onPointerUp={(e) => {
+        if (!pointerStart.current) return;
+        const dx = Math.abs(e.clientX - pointerStart.current.x);
+        const dy = Math.abs(e.clientY - pointerStart.current.y);
+        pointerStart.current = null;
+        // Se moveu menos de 5px, foi um click — não um drag
+        if (dx < 5 && dy < 5) {
+          onClick();
+        }
+      }}
+      className={`cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-shadow touch-none
+        ${isDragging ? "cursor-grabbing shadow-lg ring-2 ring-blue-300" : "hover:shadow-md"}
       `}
     >
       <div className="flex items-start justify-between gap-2">
