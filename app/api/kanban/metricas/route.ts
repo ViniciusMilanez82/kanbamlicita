@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
-export async function GET() {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+export async function GET(req: Request) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
   const colunas = await db.kanbanColuna.findMany({
     where: { ativo: true },

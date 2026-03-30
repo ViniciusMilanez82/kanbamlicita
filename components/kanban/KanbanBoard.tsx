@@ -27,12 +27,22 @@ export function KanbanBoard() {
 
   const { data: colunas = [] } = useQuery({
     queryKey: ["colunas"],
-    queryFn: () => fetch("/api/colunas").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/colunas");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar colunas");
+      return data;
+    },
   });
 
   const { data: licitacoes = [] } = useQuery({
     queryKey: ["licitacoes"],
-    queryFn: () => fetch("/api/licitacoes").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/licitacoes");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar licitações");
+      return data;
+    },
   });
 
   const moverMutation = useMutation({
@@ -53,10 +63,12 @@ export function KanbanBoard() {
   });
 
   const colunasComCards = useMemo(() => {
+    const cols = Array.isArray(colunas) ? colunas : [];
+    const lic = Array.isArray(licitacoes) ? licitacoes : [];
     const buscaLower = busca.toLowerCase();
-    return colunas.map((col: { id: string; nome: string; cor: string }) => ({
+    return cols.map((col: { id: string; nome: string; cor: string }) => ({
       ...col,
-      cards: licitacoes
+      cards: lic
         .filter((l: { card: { colunaId: string } | null }) => l.card?.colunaId === col.id)
         .filter((l: { titulo: string; orgao: string | null; objeto: string | null }) =>
           !busca ||
@@ -88,7 +100,9 @@ export function KanbanBoard() {
     const colunaDestinoId = over.id as string;
     const cardId = active.id as string;
 
-    const colDestino = colunas.find((c: { id: string }) => c.id === colunaDestinoId);
+    const colDestino = (Array.isArray(colunas) ? colunas : []).find(
+      (c: { id: string }) => c.id === colunaDestinoId
+    );
     if (colDestino?.tipo === "final_negativo") {
       const motivo = prompt("Motivo para mover para " + colDestino.nome + ":");
       if (!motivo) return;

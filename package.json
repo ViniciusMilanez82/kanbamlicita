@@ -6,6 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "deploy:prisma": "prisma migrate deploy",
+    "deploy:seed": "prisma db seed",
+    "deploy:build": "prisma migrate deploy && prisma db seed && next build",
     "lint": "eslint",
     "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules npx jest --watch"

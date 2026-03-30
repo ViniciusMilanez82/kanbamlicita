@@ -16,8 +16,15 @@ export function ColunasEditor() {
 
   const { data: colunas = [] } = useQuery<KanbanColuna[]>({
     queryKey: ["colunas-todas"],
-    queryFn: () => fetch("/api/colunas").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/colunas");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar colunas");
+      return data;
+    },
   });
+
+  const listaColunas = Array.isArray(colunas) ? colunas : [];
 
   const criarMutation = useMutation({
     mutationFn: () =>
@@ -67,7 +74,7 @@ export function ColunasEditor() {
       </p>
 
       <div className="space-y-2 mb-6">
-        {colunas.map((col) => (
+        {listaColunas.map((col) => (
           <div key={col.id} className="flex items-center gap-3 rounded border bg-white p-3">
             <GripVertical className="h-4 w-4 text-slate-300" />
             <div className="h-4 w-4 rounded" style={{ backgroundColor: col.cor }} />

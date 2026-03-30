@@ -1,7 +1,12 @@
 import { describe, it, expect, jest } from "@jest/globals";
 
 jest.unstable_mockModule("@/auth", () => ({
-  auth: jest.fn(() => Promise.resolve({ user: { id: "u1", role: "admin" } })),
+  auth: jest.fn(() =>
+    Promise.resolve({
+      user: { id: "u1", role: "admin", name: "Admin", email: "a@test" },
+      expires: new Date(Date.now() + 864e5).toISOString(),
+    })
+  ),
 }));
 
 jest.unstable_mockModule("@/lib/db", () => ({
@@ -17,7 +22,7 @@ const { GET, PUT } = await import("@/app/api/empresa/route");
 
 describe("GET /api/empresa", () => {
   it("returns the empresa", async () => {
-    const res = await GET();
+    const res = (await GET(new Request("http://localhost/api/empresa"))) as Response;
     const data = await res.json();
     expect(data.nome).toBe("Test");
   });
@@ -30,7 +35,7 @@ describe("PUT /api/empresa", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nome: "Nova", descricao: "Desc", segmento: "TI" }),
     });
-    const res = await PUT(req);
+    const res = (await PUT(req)) as Response;
     expect(res.status).toBe(200);
   });
 });

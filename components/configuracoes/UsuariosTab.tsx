@@ -17,8 +17,15 @@ export function UsuariosTab() {
 
   const { data: usuarios = [] } = useQuery({
     queryKey: ["usuarios"],
-    queryFn: () => fetch("/api/admin/usuarios").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/admin/usuarios");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar usuários");
+      return data;
+    },
   });
+
+  const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
 
   const criarMutation = useMutation({
     mutationFn: () =>
@@ -72,7 +79,7 @@ export function UsuariosTab() {
       )}
 
       <div className="space-y-2">
-        {usuarios.map((u: { id: string; name: string | null; email: string; role: string; ativo: boolean }) => (
+        {listaUsuarios.map((u: { id: string; name: string | null; email: string; role: string; ativo: boolean }) => (
           <div key={u.id} className="flex items-center justify-between rounded border bg-white p-3">
             <div>
               <span className="font-medium text-sm">{u.name ?? u.email}</span>

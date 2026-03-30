@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
-  const { id } = await params;
+  const { id } = await ctx.params;
 
   const licitacao = await db.licitacao.findUnique({
     where: { id },
@@ -33,11 +33,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json(licitacao);
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
-  const { id } = await params;
+  const { id } = await ctx.params;
   const body = await req.json();
 
   const { titulo, orgao, objeto, modalidade, uf, municipio, valorEstimado, dataPublicacao, dataSessao, linkOrigem, observacoes, dadosExtraidos } = body;

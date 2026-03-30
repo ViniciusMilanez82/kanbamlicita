@@ -16,8 +16,15 @@ export function ProdutosList() {
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["produtos"],
-    queryFn: () => fetch("/api/produtos").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/produtos");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar produtos");
+      return data;
+    },
   });
+
+  const lista = Array.isArray(produtos) ? produtos : [];
 
   const criarMutation = useMutation({
     mutationFn: (data: { nome: string; descricao: string; categoria: string; palavrasChave: string[] }) =>
@@ -60,14 +67,14 @@ export function ProdutosList() {
       )}
 
       <div className="space-y-3">
-        {produtos.map((p: { id: string; nome: string; descricao: string | null; categoria: string | null; palavrasChave: string[]; ativo: boolean }) => (
+        {lista.map((p: { id: string; nome: string; descricao: string | null; categoria: string | null; palavrasChave: string[]; ativo: boolean }) => (
           <div key={p.id} className="flex items-start justify-between rounded-lg border bg-white p-4">
             <div>
               <h3 className="font-medium">{p.nome}</h3>
               {p.descricao && <p className="text-sm text-slate-500 mt-0.5">{p.descricao}</p>}
               <div className="mt-2 flex flex-wrap gap-1">
                 {p.categoria && <Badge variant="outline">{p.categoria}</Badge>}
-                {p.palavrasChave.map((kw: string) => (
+                {(Array.isArray(p.palavrasChave) ? p.palavrasChave : []).map((kw: string) => (
                   <Badge key={kw} variant="secondary" className="text-[10px]">{kw}</Badge>
                 ))}
               </div>
@@ -81,7 +88,7 @@ export function ProdutosList() {
           </div>
         ))}
 
-        {produtos.length === 0 && !showForm && (
+        {lista.length === 0 && !showForm && (
           <p className="text-center text-slate-400 py-8">
             Nenhum produto cadastrado. Adicione seus produtos ou importe com IA.
           </p>

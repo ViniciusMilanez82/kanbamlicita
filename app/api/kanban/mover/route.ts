@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
   const body = await req.json();
   const { cardId, colunaDestinoId, motivo } = body;
@@ -27,7 +27,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Motivo é obrigatório para esta coluna" }, { status: 400 });
   }
 
-  const user = session.user as { id: string; name?: string | null };
+  const u = await db.user.findUnique({
+    where: { id: auth.userId },
+    select: { name: true },
+  });
 
   const [updated] = await db.$transaction([
     db.kanbanCard.update({
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
         colunaOrigem: card.coluna.nome,
         colunaDestino: colunaDestino.nome,
         motivo,
-        movidoPor: user.name ?? user.id,
+        movidoPor: u?.name ?? auth.userId,
       },
     }),
   ]);

@@ -1,0 +1,22 @@
+# PostgreSQL na VPS (Docker). Porta só em 127.0.0.1 — não expõe na internet.
+# Na VPS: copie deploy/postgres.env.example → deploy/postgres.env, depois:
+#   docker compose -f docker-compose.postgres.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - deploy/postgres.env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata_kanbamlicita:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata_kanbamlicita:

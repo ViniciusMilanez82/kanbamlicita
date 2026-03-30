@@ -35,7 +35,12 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
 
   const { data: licitacao } = useQuery({
     queryKey: ["licitacao", licitacaoId],
-    queryFn: () => fetch(`/api/licitacoes/${licitacaoId}`).then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/licitacoes/${licitacaoId}`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar licitação");
+      return data;
+    },
     enabled: !isNova,
   });
 

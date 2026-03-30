@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getIaProvider } from "@/lib/ia/factory";
 import { SYSTEM_ANALISAR, buildPromptAnalisar } from "@/lib/ia/prompts/analisar-licitacao";
 import { SYSTEM_PROPOSTA, buildPromptProposta } from "@/lib/ia/prompts/sugerir-proposta";
 import { SYSTEM_GENERICO } from "@/lib/ia/prompts/generico";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
   const body = await req.json();
   const { licitacaoId, tipo, pergunta } = body;

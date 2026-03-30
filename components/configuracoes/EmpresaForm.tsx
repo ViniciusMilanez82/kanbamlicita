@@ -13,11 +13,16 @@ export function EmpresaForm() {
 
   const { data: empresa } = useQuery({
     queryKey: ["empresa"],
-    queryFn: () => fetch("/api/empresa").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/empresa");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar empresa");
+      return data;
+    },
   });
 
   useEffect(() => {
-    if (empresa) {
+    if (empresa && typeof empresa === "object" && "nome" in empresa) {
       setNome(empresa.nome ?? "");
       setDescricao(empresa.descricao ?? "");
       setSegmento(empresa.segmento ?? "");

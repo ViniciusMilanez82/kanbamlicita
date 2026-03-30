@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getIaProvider } from "@/lib/ia/factory";
 import { SYSTEM_EXTRAIR, buildPromptExtrair } from "@/lib/ia/prompts/extrair-licitacao";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
   const body = await req.json();
   const { texto } = body;

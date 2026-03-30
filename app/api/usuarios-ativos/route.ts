@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
-import { db } from '@/lib/db'
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
-export async function GET() {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+export async function GET(req: Request) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
   const usuarios = await db.user.findMany({
     where: { ativo: true },
     select: { id: true, name: true },
-    orderBy: { name: 'asc' },
-  })
+    orderBy: { name: "asc" },
+  });
 
-  return NextResponse.json({ usuarios })
+  return NextResponse.json({ usuarios });
 }
