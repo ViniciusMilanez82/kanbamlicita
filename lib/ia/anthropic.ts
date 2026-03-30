@@ -5,9 +5,11 @@ export class AnthropicProvider implements IaProvider {
   private client: Anthropic;
   readonly modelName: string;
 
-  constructor() {
-    this.client = new Anthropic({ apiKey: process.env.LLM_API_KEY });
-    this.modelName = process.env.LLM_MODEL ?? "claude-sonnet-4-20250514";
+  constructor(apiKey?: string, model?: string) {
+    this.client = new Anthropic({
+      apiKey: apiKey || process.env.LLM_API_KEY || process.env.ANTHROPIC_API_KEY,
+    });
+    this.modelName = model || process.env.LLM_MODEL || "claude-sonnet-4-20250514";
   }
 
   async complete(system: string, user: string): Promise<string> {

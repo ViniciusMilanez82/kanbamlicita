@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   });
 
   try {
-    const ia = getIaProvider();
+    const ia = await getIaProvider();
     let system: string;
     let prompt: string;
 

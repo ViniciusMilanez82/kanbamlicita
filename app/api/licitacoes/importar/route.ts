@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const ia = getIaProvider();
+    const ia = await getIaProvider();
     const resposta = await ia.complete(SYSTEM_EXTRAIR, buildPromptExtrair(texto));
 
     const dados = JSON.parse(resposta.replace(/```json?\n?/g, "").replace(/```/g, "").trim());

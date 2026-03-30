@@ -16,6 +16,8 @@ model Empresa {
   segmento    String?
   /// Preferências da busca PNCP (datas, UFs, palavras-chave). Ver manuais em gov.br/pncp.
   pncpPreferencias Json?  @map("pncp_preferencias")
+  /// Configurações da IA (provedor, chave, modelo).
+  iaConfig    Json?    @map("ia_config")
   criadoEm    DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!texto) return NextResponse.json({ error: "Texto é obrigatório" }, { status: 400 });
 
   try {
-    const ia = getIaProvider();
+    const ia = await getIaProvider();
     const resposta = await ia.complete(SYSTEM_CATALOGO, buildPromptCatalogo(texto));
 
     const json = JSON.parse(resposta.replace(/```json?\n?/g, "").replace(/```/g, "").trim());
