@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, ExternalLink } from "lucide-react";
+import { X, ExternalLink, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoEditavel } from "./CampoEditavel";
 import { TimelineMovimentos } from "./TimelineMovimentos";
 import { BotaoIa } from "./BotaoIa";
-import { RespostaIa } from "./RespostaIa";
+import { RespostaIa, RespostaIaPreview } from "./RespostaIa";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { AcaoIa } from "@/types/licitacao";
@@ -17,6 +17,13 @@ interface LicitacaoDrawerProps {
   licitacaoId: string;
   onClose: () => void;
 }
+
+type IaPreview = {
+  tipo: string;
+  resposta: string;
+  respostaJson: Record<string, unknown> | null;
+  modelo: string;
+};
 
 export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) {
   const queryClient = useQueryClient();
@@ -32,6 +39,9 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
     textoImportar: "",
   });
   const [modoImportar, setModoImportar] = useState(false);
+
+  // Preview da IA (ainda não gravado)
+  const [iaPreview, setIaPreview] = useState<IaPreview | null>(null);
 
   const { data: licitacao } = useQuery({
     queryKey: ["licitacao", licitacaoId],
@@ -51,7 +61,8 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       }).then((r) => {
-        if (!r.ok) return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
+        if (!r.ok)
+          return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
         return r.json();
       }),
     onSuccess: () => {
@@ -69,7 +80,8 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ texto }),
       }).then((r) => {
-        if (!r.ok) return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
+        if (!r.ok)
+          return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
         return r.json();
       }),
     onSuccess: () => {
@@ -94,8 +106,51 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
     },
   });
 
-  function handleIaResult(_result: Record<string, unknown>) {
-    queryClient.invalidateQueries({ queryKey: ["licitacao", licitacaoId] });
+  // Gravar resultado da IA no histórico
+  const gravarIaMutation = useMutation({
+    mutationFn: async (preview: IaPreview) => {
+      const r = await fetch("/api/ia/analisar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          licitacaoId,
+          tipo: preview.tipo,
+          gravar: true,
+          resposta: preview.resposta,
+          respostaJson: preview.respostaJson,
+          modelo: preview.modelo,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao gravar");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["licitacao", licitacaoId] });
+      setIaPreview(null);
+      toast.success("Análise gravada no histórico da licitação!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function handleIaResult(result: {
+    tipo: string;
+    resposta: string;
+    respostaJson: Record<string, unknown> | null;
+    modelo: string;
+    acaoId: string;
+  }) {
+    setIaPreview({
+      tipo: result.tipo,
+      resposta: result.resposta,
+      respostaJson: result.respostaJson,
+      modelo: result.modelo,
+    });
+  }
+
+  function descartarPreview() {
+    setIaPreview(null);
+    toast.info("Análise descartada.");
   }
 
   return (
@@ -135,14 +190,17 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
               {modoImportar ? (
                 <div className="space-y-3">
                   <p className="text-sm text-slate-500">
-                    Cole o texto do edital ou informações da licitação. A IA extrairá os dados automaticamente.
+                    Cole o texto do edital ou informações da licitação. A IA extrairá os dados
+                    automaticamente.
                   </p>
                   <textarea
                     className="w-full rounded border px-3 py-2 text-sm"
                     rows={12}
                     placeholder="Cole aqui o texto do edital, link, ou qualquer informação da licitação..."
                     value={novaForm.textoImportar}
-                    onChange={(e) => setNovaForm({ ...novaForm, textoImportar: e.target.value })}
+                    onChange={(e) =>
+                      setNovaForm({ ...novaForm, textoImportar: e.target.value })
+                    }
                   />
                   <Button
                     onClick={() => importarMutation.mutate(novaForm.textoImportar)}
@@ -156,11 +214,17 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-slate-500">Título *</label>
-                    <Input value={novaForm.titulo} onChange={(e) => setNovaForm({ ...novaForm, titulo: e.target.value })} />
+                    <Input
+                      value={novaForm.titulo}
+                      onChange={(e) => setNovaForm({ ...novaForm, titulo: e.target.value })}
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500">Órgão</label>
-                    <Input value={novaForm.orgao} onChange={(e) => setNovaForm({ ...novaForm, orgao: e.target.value })} />
+                    <Input
+                      value={novaForm.orgao}
+                      onChange={(e) => setNovaForm({ ...novaForm, orgao: e.target.value })}
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500">Objeto</label>
@@ -174,26 +238,47 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-medium text-slate-500">Modalidade</label>
-                      <Input value={novaForm.modalidade} onChange={(e) => setNovaForm({ ...novaForm, modalidade: e.target.value })} />
+                      <Input
+                        value={novaForm.modalidade}
+                        onChange={(e) =>
+                          setNovaForm({ ...novaForm, modalidade: e.target.value })
+                        }
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-slate-500">UF</label>
-                      <Input value={novaForm.uf} onChange={(e) => setNovaForm({ ...novaForm, uf: e.target.value })} maxLength={2} />
+                      <Input
+                        value={novaForm.uf}
+                        onChange={(e) => setNovaForm({ ...novaForm, uf: e.target.value })}
+                        maxLength={2}
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-500">Valor Estimado (R$)</label>
-                    <Input type="number" value={novaForm.valorEstimado} onChange={(e) => setNovaForm({ ...novaForm, valorEstimado: e.target.value })} />
+                    <label className="text-xs font-medium text-slate-500">
+                      Valor Estimado (R$)
+                    </label>
+                    <Input
+                      type="number"
+                      value={novaForm.valorEstimado}
+                      onChange={(e) =>
+                        setNovaForm({ ...novaForm, valorEstimado: e.target.value })
+                      }
+                    />
                   </div>
                   <Button
-                    onClick={() => criarMutation.mutate({
-                      titulo: novaForm.titulo,
-                      orgao: novaForm.orgao || null,
-                      objeto: novaForm.objeto || null,
-                      modalidade: novaForm.modalidade || null,
-                      uf: novaForm.uf || null,
-                      valorEstimado: novaForm.valorEstimado ? Number(novaForm.valorEstimado) : null,
-                    })}
+                    onClick={() =>
+                      criarMutation.mutate({
+                        titulo: novaForm.titulo,
+                        orgao: novaForm.orgao || null,
+                        objeto: novaForm.objeto || null,
+                        modalidade: novaForm.modalidade || null,
+                        uf: novaForm.uf || null,
+                        valorEstimado: novaForm.valorEstimado
+                          ? Number(novaForm.valorEstimado)
+                          : null,
+                      })
+                    }
                     disabled={!novaForm.titulo || criarMutation.isPending}
                     className="w-full"
                   >
@@ -206,7 +291,10 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
             <div className="space-y-6">
               {licitacao.card && (
                 <div className="flex flex-wrap gap-1.5">
-                  <Badge style={{ backgroundColor: licitacao.card.coluna?.cor }} className="text-white">
+                  <Badge
+                    style={{ backgroundColor: licitacao.card.coluna?.cor }}
+                    className="text-white"
+                  >
                     {licitacao.card.coluna?.nome}
                   </Badge>
                   {licitacao.card.urgente && <Badge variant="destructive">Urgente</Badge>}
@@ -225,30 +313,126 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
               )}
 
               <section>
-                <h3 className="text-sm font-semibold text-slate-700 mb-2">Dados da Licitação</h3>
-                <CampoEditavel label="Título" valor={licitacao.titulo} onSave={(v: string) => updateMutation.mutate({ titulo: v })} />
-                <CampoEditavel label="Órgão" valor={licitacao.orgao} onSave={(v: string) => updateMutation.mutate({ orgao: v })} />
-                <CampoEditavel label="Objeto" valor={licitacao.objeto} onSave={(v: string) => updateMutation.mutate({ objeto: v })} multiline />
-                <CampoEditavel label="Modalidade" valor={licitacao.modalidade} onSave={(v: string) => updateMutation.mutate({ modalidade: v })} />
+                <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                  Dados da Licitação
+                </h3>
+                <CampoEditavel
+                  label="Título"
+                  valor={licitacao.titulo}
+                  onSave={(v: string) => updateMutation.mutate({ titulo: v })}
+                />
+                <CampoEditavel
+                  label="Órgão"
+                  valor={licitacao.orgao}
+                  onSave={(v: string) => updateMutation.mutate({ orgao: v })}
+                />
+                <CampoEditavel
+                  label="Objeto"
+                  valor={licitacao.objeto}
+                  onSave={(v: string) => updateMutation.mutate({ objeto: v })}
+                  multiline
+                />
+                <CampoEditavel
+                  label="Modalidade"
+                  valor={licitacao.modalidade}
+                  onSave={(v: string) => updateMutation.mutate({ modalidade: v })}
+                />
                 <div className="grid grid-cols-2 gap-4">
-                  <CampoEditavel label="UF" valor={licitacao.uf} onSave={(v: string) => updateMutation.mutate({ uf: v })} />
-                  <CampoEditavel label="Município" valor={licitacao.municipio} onSave={(v: string) => updateMutation.mutate({ municipio: v })} />
+                  <CampoEditavel
+                    label="UF"
+                    valor={licitacao.uf}
+                    onSave={(v: string) => updateMutation.mutate({ uf: v })}
+                  />
+                  <CampoEditavel
+                    label="Município"
+                    valor={licitacao.municipio}
+                    onSave={(v: string) => updateMutation.mutate({ municipio: v })}
+                  />
                 </div>
-                <CampoEditavel label="Observações" valor={licitacao.observacoes} onSave={(v: string) => updateMutation.mutate({ observacoes: v })} multiline />
+                <CampoEditavel
+                  label="Observações"
+                  valor={licitacao.observacoes}
+                  onSave={(v: string) => updateMutation.mutate({ observacoes: v })}
+                  multiline
+                />
               </section>
 
+              {/* ── Assistente IA ── */}
               <section>
                 <h3 className="text-sm font-semibold text-slate-700 mb-2">Assistente IA</h3>
                 <div className="flex flex-wrap gap-2">
-                  <BotaoIa licitacaoId={licitacaoId} tipo="triagem" label="Triagem" onResult={handleIaResult} />
-                  <BotaoIa licitacaoId={licitacaoId} tipo="analise" label="Analisar" onResult={handleIaResult} />
-                  <BotaoIa licitacaoId={licitacaoId} tipo="proposta" label="Sugerir Proposta" onResult={handleIaResult} />
+                  <BotaoIa
+                    licitacaoId={licitacaoId}
+                    tipo="triagem"
+                    label="Triagem"
+                    onResult={handleIaResult}
+                    disabled={!!iaPreview}
+                  />
+                  <BotaoIa
+                    licitacaoId={licitacaoId}
+                    tipo="analise"
+                    label="Analisar"
+                    onResult={handleIaResult}
+                    disabled={!!iaPreview}
+                  />
+                  <BotaoIa
+                    licitacaoId={licitacaoId}
+                    tipo="proposta"
+                    label="Sugerir Proposta"
+                    onResult={handleIaResult}
+                    disabled={!!iaPreview}
+                  />
                 </div>
               </section>
 
+              {/* ── Preview da IA (aguardando gravar/descartar) ── */}
+              {iaPreview && (
+                <section className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-amber-800">
+                      Resultado da IA — Salvar ou descartar?
+                    </h3>
+                  </div>
+
+                  <RespostaIaPreview
+                    tipo={iaPreview.tipo}
+                    resposta={iaPreview.resposta}
+                    respostaJson={iaPreview.respostaJson}
+                    modelo={iaPreview.modelo}
+                  />
+
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => gravarIaMutation.mutate(iaPreview)}
+                      disabled={gravarIaMutation.isPending}
+                      className="gap-1.5"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {gravarIaMutation.isPending
+                        ? "Gravando..."
+                        : "Gravar no histórico"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={descartarPreview}
+                      disabled={gravarIaMutation.isPending}
+                      className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Descartar
+                    </Button>
+                  </div>
+                </section>
+              )}
+
+              {/* ── Histórico de análises gravadas ── */}
               {licitacao.acoesIa && licitacao.acoesIa.length > 0 && (
                 <section>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Resultados da IA</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                    Análises gravadas
+                  </h3>
                   <div className="space-y-3">
                     {licitacao.acoesIa
                       .filter((a: AcaoIa) => a.status === "concluido")
@@ -266,14 +450,17 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                 </section>
               )}
 
-              {licitacao.dadosExtraidos && Object.keys(licitacao.dadosExtraidos).length > 0 && (
-                <section>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Dados Extraídos (IA)</h3>
-                  <pre className="rounded bg-slate-50 p-3 text-xs overflow-x-auto">
-                    {JSON.stringify(licitacao.dadosExtraidos, null, 2)}
-                  </pre>
-                </section>
-              )}
+              {licitacao.dadosExtraidos &&
+                Object.keys(licitacao.dadosExtraidos).length > 0 && (
+                  <section>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                      Dados Extraídos (IA)
+                    </h3>
+                    <pre className="rounded bg-slate-50 p-3 text-xs overflow-x-auto">
+                      {JSON.stringify(licitacao.dadosExtraidos, null, 2)}
+                    </pre>
+                  </section>
+                )}
             </div>
           ) : (
             <p className="text-sm text-slate-400">Carregando...</p>

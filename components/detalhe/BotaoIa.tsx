@@ -9,25 +9,40 @@ interface BotaoIaProps {
   licitacaoId: string;
   tipo: "triagem" | "analise" | "proposta" | "generico";
   label: string;
-  onResult: (result: Record<string, unknown>) => void;
+  onResult: (result: {
+    tipo: string;
+    resposta: string;
+    respostaJson: Record<string, unknown> | null;
+    modelo: string;
+    acaoId: string;
+  }) => void;
+  disabled?: boolean;
 }
 
-export function BotaoIa({ licitacaoId, tipo, label, onResult }: BotaoIaProps) {
+export function BotaoIa({ licitacaoId, tipo, label, onResult, disabled }: BotaoIaProps) {
   const mutation = useMutation({
-    mutationFn: () =>
-      fetch("/api/ia/analisar", {
+    mutationFn: async () => {
+      const r = await fetch("/api/ia/analisar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ licitacaoId, tipo }),
-      }).then((r) => {
-        if (!r.ok) return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
-        return r.json();
-      }),
-    onSuccess: (data) => {
-      toast.success("Análise IA concluída!");
-      onResult(data.respostaJson ?? { resposta: data.resposta });
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao analisar");
+      return data;
     },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: (data) => {
+      onResult({
+        tipo,
+        resposta: data.resposta ?? "",
+        respostaJson: data.respostaJson ?? null,
+        modelo: data.modelo ?? "",
+        acaoId: data.id ?? "",
+      });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+    },
   });
 
   return (
@@ -35,7 +50,7 @@ export function BotaoIa({ licitacaoId, tipo, label, onResult }: BotaoIaProps) {
       size="sm"
       variant="outline"
       onClick={() => mutation.mutate()}
-      disabled={mutation.isPending}
+      disabled={mutation.isPending || disabled}
       className="gap-1.5"
     >
       {mutation.isPending ? (
@@ -43,7 +58,7 @@ export function BotaoIa({ licitacaoId, tipo, label, onResult }: BotaoIaProps) {
       ) : (
         <Sparkles className="h-3.5 w-3.5 text-amber-500" />
       )}
-      {label}
+      {mutation.isPending ? "Analisando..." : label}
     </Button>
   );
 }
