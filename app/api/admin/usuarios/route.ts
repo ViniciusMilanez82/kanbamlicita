@@ -31,6 +31,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Role inválida" }, { status: 400 });
   }
 
+  if (!email || !senha) {
+    return NextResponse.json({ error: "Email e senha são obrigatórios" }, { status: 400 });
+  }
+
+  const existente = await db.user.findUnique({ where: { email } });
+  if (existente) {
+    return NextResponse.json({ error: "Já existe um usuário com esse email" }, { status: 409 });
+  }
+
   const senhaHash = await bcrypt.hash(senha, 10);
   const user = await db.user.create({
     data: { name, email, senha: senhaHash, role },

@@ -24,22 +24,24 @@ export function UsuariosTab() {
       const r = await fetch("/api/admin/usuarios");
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "Erro ao carregar usuários");
-      return data;
+      return data.usuarios ?? data;
     },
   });
 
   const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
 
   const criarMutation = useMutation({
-    mutationFn: () =>
-      fetch("/api/admin/usuarios", {
+    mutationFn: async () => {
+      const r = await fetch("/api/admin/usuarios", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: nome, email, senha, role }),
-      }).then((r) => {
-        if (!r.ok) return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
-        return r.json();
-      }),
+      });
+      const text = await r.text();
+      const data = text ? JSON.parse(text) : {};
+      if (!r.ok) throw new Error(data.error ?? "Erro ao criar usuário");
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
       toast.success("Usuário criado!");
@@ -50,12 +52,17 @@ export function UsuariosTab() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: (data: { id: string; ativo: boolean }) =>
-      fetch(`/api/admin/usuarios/${data.id}`, {
+    mutationFn: async (data: { id: string; ativo: boolean }) => {
+      const r = await fetch(`/api/admin/usuarios/${data.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ativo: data.ativo }),
-      }).then((r) => r.json()),
+      });
+      const text = await r.text();
+      const json = text ? JSON.parse(text) : {};
+      if (!r.ok) throw new Error(json.error ?? "Erro ao atualizar");
+      return json;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
       toast.success("Atualizado!");
