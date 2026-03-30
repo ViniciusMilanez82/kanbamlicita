@@ -13,6 +13,7 @@ export function UsuariosTab() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [role, setRole] = useState("user");
 
   const { data: usuarios = [] } = useQuery({
@@ -41,7 +42,7 @@ export function UsuariosTab() {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
       toast.success("Usuário criado!");
       setShowForm(false);
-      setNome(""); setEmail(""); setSenha(""); setRole("user");
+      setNome(""); setEmail(""); setSenha(""); setConfirmarSenha(""); setRole("user");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -70,11 +71,15 @@ export function UsuariosTab() {
           <Input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <Input placeholder="Confirmar senha" type="password" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} />
+          {senha && confirmarSenha && senha !== confirmarSenha && (
+            <p className="text-xs text-red-500">As senhas não coincidem</p>
+          )}
           <select className="w-full rounded border px-3 py-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="user">Usuário</option>
             <option value="admin">Admin</option>
           </select>
-          <Button onClick={() => criarMutation.mutate()} disabled={!nome || !email || !senha}>Criar</Button>
+          <Button onClick={() => criarMutation.mutate()} disabled={!nome || !email || !senha || senha !== confirmarSenha}>Criar</Button>
         </div>
       )}
 
