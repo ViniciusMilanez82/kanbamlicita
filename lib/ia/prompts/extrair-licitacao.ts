@@ -1,26 +1,44 @@
-export const SYSTEM_EXTRAIR = `Você é um assistente especializado em licitações públicas brasileiras.
-Sua tarefa é extrair dados estruturados de textos de editais.
-Retorne APENAS JSON válido, sem markdown, sem explicações.`;
+export const SYSTEM_EXTRAIR = `Você é um assistente especializado em extração estruturada de dados de licitações públicas brasileiras.
+
+Sua tarefa é ler o texto fornecido e extrair informações objetivas e estruturadas. Não invente informações ausentes. Quando um campo não puder ser identificado com segurança, retorne null. Normalize datas no formato YYYY-MM-DD quando possível. Normalize valores como número, sem texto adicional.
+
+Retorne APENAS JSON válido. Não use markdown. Não escreva explicações fora do JSON.`;
 
 export function buildPromptExtrair(texto: string): string {
-  return `Extraia os seguintes dados do texto abaixo. Se não encontrar, use null.
+  return `Extraia dados estruturados do texto de licitação abaixo.
+
+TEXTO:
+${texto}
+
+Regras:
+- não invente campo ausente
+- use null quando não identificar com segurança
+- normalize datas para YYYY-MM-DD quando possível
+- normalize valor estimado como número
+- extraia também itens, sinais relevantes e exigências-chave
+- sinais relevantes incluem: instalações provisórias, apoio operacional, escritório, sanitário, refeitório, canteiro de obras, base de apoio, alojamento, guarita, estrutura temporária
 
 Retorne este JSON:
 {
-  "titulo": "título resumido da licitação (max 100 chars)",
-  "orgao": "nome do órgão licitante",
-  "objeto": "descrição do objeto",
-  "modalidade": "pregão eletrônico, concorrência, etc",
-  "uf": "sigla do estado (2 letras)",
-  "municipio": "nome do município",
-  "valorEstimado": 0.00,
-  "dataPublicacao": "YYYY-MM-DD ou null",
-  "dataSessao": "YYYY-MM-DDTHH:mm:ss ou null",
-  "itensIdentificados": ["item 1", "item 2"],
-  "requisitosChave": ["requisito 1", "requisito 2"],
-  "observacoes": "qualquer info relevante adicional"
-}
-
-TEXTO DO EDITAL:
-${texto}`;
+  "titulo": null,
+  "orgao": null,
+  "objeto": null,
+  "modalidade": null,
+  "uf": null,
+  "municipio": null,
+  "valorEstimado": null,
+  "dataPublicacao": null,
+  "dataSessao": null,
+  "itensIdentificados": [
+    {
+      "identificador": null,
+      "descricao": null,
+      "quantitativo": null,
+      "unidade": null
+    }
+  ],
+  "requisitosChave": ["string"],
+  "sinaisRelevantesParaTriagem": ["string"],
+  "observacoes": ["string"]
+}`;
 }

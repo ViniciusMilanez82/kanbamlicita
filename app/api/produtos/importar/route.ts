@@ -18,14 +18,21 @@ export async function POST(req: Request) {
     const resposta = await ia.complete(SYSTEM_CATALOGO, buildPromptCatalogo(texto));
 
     const json = JSON.parse(resposta.replace(/```json?\n?/g, "").replace(/```/g, "").trim());
-    const produtos = json.produtos ?? [];
+    // Suporta formato novo (itens) e legado (produtos)
+    const itens = json.itens ?? json.produtos ?? [];
 
     const criados = [];
-    for (const p of produtos) {
+    for (const p of itens) {
+      const descParts = [p.descricao ?? ""];
+      if (p.tipo) descParts.push(`Tipo: ${p.tipo}`);
+      if (Array.isArray(p.aplicacoes) && p.aplicacoes.length > 0) {
+        descParts.push(`Aplicações: ${p.aplicacoes.join(", ")}`);
+      }
+
       const produto = await db.produto.create({
         data: {
           nome: p.nome,
-          descricao: p.descricao ?? null,
+          descricao: descParts.filter(Boolean).join(" | ") || null,
           categoria: p.categoria ?? null,
           palavrasChave: p.palavrasChave ?? [],
         },
