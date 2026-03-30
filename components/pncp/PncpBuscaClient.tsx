@@ -21,7 +21,6 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -32,31 +31,15 @@ function explicarErro(texto: string): string {
   if (!t) return "Algo deu errado. Tente de novo daqui a pouco.";
   if (/n[aã]o autenticado/i.test(t))
     return "Você precisa estar logado. Atualize a página (F5) e entre de novo.";
-  if (/502|consultar pncp|falha ao consultar/i.test(t))
+  if (/502|consultar pncp|falha ao consultar|indisponível/i.test(t))
     return "O site do governo está fora do ar neste momento. Aguarde alguns minutos e tente de novo.";
   if (/409|já existe|já foi adicionad/i.test(t))
     return "Esse contrato já está no seu painel. Abra o Kanban para vê-lo.";
   return t;
 }
 
-function hojeYmd() {
-  const d = new Date();
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function diasAtrasYmd(dias: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - dias);
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function ymdToInput(ymd: string) {
-  if (!/^\d{8}$/.test(ymd)) return "";
-  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
-}
-
-function inputToYmd(iso: string) {
-  return iso.replace(/-/g, "");
+function fmtNum(n: number) {
+  return n.toLocaleString("pt-BR");
 }
 
 const TAMANHOS_LOTE = [10, 20, 30, 40, 50] as const;
@@ -65,10 +48,6 @@ function tamanhoLoteValido(n: number): string {
   if (!Number.isFinite(n)) return "20";
   const r = Math.round(n / 10) * 10;
   return String(Math.min(50, Math.max(10, r)));
-}
-
-function fmtNum(n: number) {
-  return n.toLocaleString("pt-BR");
 }
 
 /* ------------------------------------------------------------------ */
@@ -88,7 +67,7 @@ function Dica({ children }: { children: React.ReactNode }) {
         <HelpCircle className="h-3.5 w-3.5" />
       </button>
       {aberta && (
-        <span className="absolute left-0 top-5 z-50 w-64 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-slate-700 shadow-lg">
+        <span className="absolute left-0 top-5 z-50 w-72 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-slate-700 shadow-lg">
           <button
             type="button"
             onClick={() => setAberta(false)}
@@ -130,7 +109,7 @@ function PassoHeader({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tipos do resultado                                                 */
+/*  Tipo do resultado                                                  */
 /* ------------------------------------------------------------------ */
 
 type Resultado = {
@@ -138,9 +117,7 @@ type Resultado = {
   totalRegistros: number;
   totalPaginas: number;
   numeroPagina: number;
-  totalConsultados: number;
   totalFiltrados: number;
-  temMaisNoGoverno: boolean;
   filtrosUsados: { ufs: string[]; palavrasChave: string[] };
 };
 
@@ -170,8 +147,6 @@ export function PncpBuscaClient() {
   const prefs = empresa?.pncpPreferencias;
 
   /* ---------- estado do formulário ---------- */
-  const [dataIni, setDataIni] = useState(() => ymdToInput(diasAtrasYmd(14)));
-  const [dataFim, setDataFim] = useState(() => ymdToInput(hojeYmd()));
   const [ufsCsv, setUfsCsv] = useState("");
   const [palavras, setPalavras] = useState("");
   const [tamanho, setTamanho] = useState("20");
@@ -181,8 +156,6 @@ export function PncpBuscaClient() {
   /* preenche com preferências salvas */
   useEffect(() => {
     if (!prefs) return;
-    if (prefs.dataInicial) setDataIni(ymdToInput(prefs.dataInicial));
-    if (prefs.dataFinal) setDataFim(ymdToInput(prefs.dataFinal));
     if (prefs.ufs?.length) setUfsCsv(prefs.ufs.join(", "));
     if (prefs.palavrasChave?.length) setPalavras(prefs.palavrasChave.join(", "));
     if (prefs.tamanhoPagina) setTamanho(tamanhoLoteValido(prefs.tamanhoPagina));
@@ -197,8 +170,6 @@ export function PncpBuscaClient() {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dataInicial: inputToYmd(dataIni),
-          dataFinal: inputToYmd(dataFim),
           pagina: paginaReq,
           tamanhoPagina: Number(tamanho) || 20,
           ufsCsv,
@@ -227,8 +198,6 @@ export function PncpBuscaClient() {
           descricao: empresa?.descricao ?? "",
           segmento: empresa?.segmento ?? "",
           pncpPreferencias: {
-            dataInicial: inputToYmd(dataIni),
-            dataFinal: inputToYmd(dataFim),
             ufs: ufsCsv
               .split(/[,;\s]+/)
               .map((s) => s.trim().toUpperCase())
@@ -247,7 +216,7 @@ export function PncpBuscaClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresa"] });
-      toast.success("Opções salvas! Na próxima vez elas já vêm preenchidas automaticamente.");
+      toast.success("Opções salvas! Na próxima vez elas já vêm preenchidas.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -271,8 +240,6 @@ export function PncpBuscaClient() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const temFiltro = ufsCsv.trim().length > 0 || palavras.trim().length > 0;
-
   /* ---------- render ---------- */
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-12">
@@ -293,9 +260,9 @@ export function PncpBuscaClient() {
               estar logado neste sistema.
             </p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              Quando encontrar algo interessante, clique em{" "}
-              <strong>&quot;Adicionar ao meu painel&quot;</strong> e o contrato vai direto para o
-              seu Kanban.
+              Digite o que você procura (ex: <em>container</em>, <em>manutenção predial</em>,{" "}
+              <em>software</em>) e o sistema busca direto no governo, trazendo{" "}
+              <strong>somente</strong> o que combina com sua busca.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <a
@@ -319,52 +286,41 @@ export function PncpBuscaClient() {
         </div>
       </div>
 
-      {/* ---- PASSO 1: Período ---- */}
+      {/* ---- PASSO 1: O que procura ---- */}
       <section className="rounded-xl border bg-white p-5 shadow-sm">
         <PassoHeader
           numero={1}
-          titulo="Escolha o período"
-          descricao="De quando até quando você quer ver contratos publicados?"
+          titulo="O que você está procurando?"
+          descricao="Digite palavras que descrevam o produto ou serviço que sua empresa oferece. O governo vai buscar contratos que contenham essas palavras."
         />
-        <div className="grid gap-4 sm:grid-cols-2 ml-10">
+        <div className="ml-10 space-y-4">
           <div>
             <label className="text-xs font-medium text-slate-600">
-              A partir de
+              Palavras-chave
               <Dica>
-                Data mais antiga. Exemplo: se colocar 01/03/2026, vai mostrar contratos
-                publicados de 1 de março em diante.
+                Escreva palavras que costumam aparecer nos contratos que interessam a sua
+                empresa. Exemplos: &quot;container&quot;, &quot;locação equipamento&quot;,
+                &quot;manutenção predial&quot;, &quot;licença software&quot;. Separe por vírgula
+                se quiser buscar mais de uma coisa.
               </Dica>
             </label>
-            <Input
-              type="date"
-              value={dataIni}
-              onChange={(e) => setDataIni(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-slate-600">
-              Até
-              <Dica>
-                Data mais recente. Normalmente é a data de hoje.
-              </Dica>
-            </label>
-            <Input
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-              className="mt-1"
+            <textarea
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+              rows={2}
+              placeholder="Ex: container, locação, equipamento"
+              value={palavras}
+              onChange={(e) => setPalavras(e.target.value)}
             />
           </div>
         </div>
       </section>
 
-      {/* ---- PASSO 2: Filtros ---- */}
+      {/* ---- PASSO 2: Filtros opcionais ---- */}
       <section className="rounded-xl border bg-white p-5 shadow-sm">
         <PassoHeader
           numero={2}
-          titulo="O que você está procurando?"
-          descricao="Filtre por estados e palavras-chave para ver apenas contratos relacionados ao seu negócio. O sistema busca automaticamente apenas o que combinar com seus filtros."
+          titulo="Refine sua busca (opcional)"
+          descricao="Se quiser, filtre por estados e escolha quantos resultados ver de cada vez."
         />
         <div className="ml-10 space-y-4">
           <div>
@@ -372,7 +328,7 @@ export function PncpBuscaClient() {
               Filtrar por estados
               <Dica>
                 Digite a sigla dos estados separada por vírgula. Exemplo: SP, RJ, MG. Se deixar
-                em branco, vêm contratos de todos os estados.
+                em branco, busca em todos os estados do Brasil.
               </Dica>
             </label>
             <Input
@@ -384,35 +340,10 @@ export function PncpBuscaClient() {
           </div>
           <div>
             <label className="text-xs font-medium text-slate-600">
-              Palavras-chave
-              <Dica>
-                Escreva palavras que costumam aparecer nos contratos que interessam a sua
-                empresa. Exemplo: &quot;container, locação, equipamento&quot;. Separe por vírgula.
-                O sistema vai trazer <strong>somente</strong> contratos que contenham pelo menos
-                uma dessas palavras.
-              </Dica>
-            </label>
-            <textarea
-              className="mt-1 w-full max-w-md rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-              rows={2}
-              placeholder="Ex: container, locação, equipamento, manutenção"
-              value={palavras}
-              onChange={(e) => setPalavras(e.target.value)}
-            />
-            {temFiltro && (
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-blue-700">
-                <Filter className="h-3 w-3" />
-                O sistema vai trazer <strong>somente</strong> contratos que combinem com seus
-                filtros.
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="text-xs font-medium text-slate-600">
-              Quantos resultados por vez
+              Resultados por vez
               <Dica>
                 Escolha quantos contratos quer ver de cada vez. Depois de buscar, use
-                &quot;Anterior&quot; e &quot;Próximos&quot; para navegar.
+                &quot;Anterior&quot; e &quot;Próximos&quot; para ver mais.
               </Dica>
             </label>
             <select
@@ -435,11 +366,7 @@ export function PncpBuscaClient() {
         <PassoHeader
           numero={3}
           titulo="Buscar"
-          descricao={
-            temFiltro
-              ? "O sistema vai consultar o site do governo e trazer apenas os contratos que combinam com seus filtros. Pode levar alguns segundos."
-              : "Clique para consultar os contratos no site do governo."
-          }
+          descricao="Clique para consultar os contratos no site do governo."
         />
         <div className="ml-10 flex flex-wrap items-center gap-3">
           <Button
@@ -481,7 +408,7 @@ export function PncpBuscaClient() {
         </div>
       </section>
 
-      {/* ---- Resumo dos resultados ---- */}
+      {/* ---- Resultados ---- */}
       {resultado && (
         <>
           {/* Painel de resumo */}
@@ -491,82 +418,54 @@ export function PncpBuscaClient() {
                 {resultado.totalRegistros === 0 ? (
                   <>
                     <p className="text-base font-semibold text-slate-900">
-                      Nenhum contrato nesse período
+                      Nenhum contrato encontrado
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
-                      Tente datas mais amplas ou verifique se estão corretas.
-                    </p>
-                  </>
-                ) : resultado.totalFiltrados === 0 ? (
-                  <>
-                    <p className="text-base font-semibold text-slate-900">
-                      Nenhum contrato combinou com seus filtros
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      O governo tem{" "}
-                      <strong>{fmtNum(resultado.totalRegistros)}</strong> contrato
-                      {resultado.totalRegistros !== 1 && "s"} nesse período, mas nenhum combina
-                      com {resultado.filtrosUsados.palavrasChave.length > 0 && (
-                        <>as palavras <strong>&quot;{resultado.filtrosUsados.palavrasChave.join(", ")}&quot;</strong></>
-                      )}
-                      {resultado.filtrosUsados.ufs.length > 0 && resultado.filtrosUsados.palavrasChave.length > 0 && " e "}
-                      {resultado.filtrosUsados.ufs.length > 0 && (
-                        <>os estados <strong>{resultado.filtrosUsados.ufs.join(", ")}</strong></>
-                      )}
-                      . Tente outras palavras ou remova os filtros.
+                      Tente outras palavras-chave ou remova os filtros de estado.
                     </p>
                   </>
                 ) : (
                   <>
                     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                       <p className="text-2xl font-bold text-blue-700">
-                        {fmtNum(resultado.totalFiltrados)}
+                        {fmtNum(resultado.totalRegistros)}
                       </p>
                       <p className="text-sm text-slate-700">
-                        contrato{resultado.totalFiltrados !== 1 && "s"} encontrado
-                        {resultado.totalFiltrados !== 1 && "s"}
-                        {resultado.filtrosUsados.palavrasChave.length > 0 ||
-                        resultado.filtrosUsados.ufs.length > 0
-                          ? " com seus filtros"
-                          : " no período"}
-                        {resultado.temMaisNoGoverno && " (pode haver mais)"}
+                        contrato{resultado.totalRegistros !== 1 && "s"} encontrado
+                        {resultado.totalRegistros !== 1 && "s"}
+                        {resultado.filtrosUsados.palavrasChave.length > 0 &&
+                          ` para "${resultado.filtrosUsados.palavrasChave.join(", ")}"`}
                       </p>
                     </div>
-                    {/* Detalhamento dos filtros aplicados */}
-                    {(resultado.filtrosUsados.palavrasChave.length > 0 ||
-                      resultado.filtrosUsados.ufs.length > 0) && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {resultado.filtrosUsados.ufs.length > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
-                            Estados: {resultado.filtrosUsados.ufs.join(", ")}
-                          </span>
-                        )}
-                        {resultado.filtrosUsados.palavrasChave.map((p) => (
-                          <span
-                            key={p}
-                            className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
-                          >
-                            {p}
-                          </span>
-                        ))}
-                        <span className="text-xs text-slate-500">
-                          de {fmtNum(resultado.totalRegistros)} publicados no governo
+                    {/* Badges dos filtros */}
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {resultado.filtrosUsados.ufs.length > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
+                          <Filter className="h-3 w-3" />
+                          Estados: {resultado.filtrosUsados.ufs.join(", ")}
                         </span>
-                      </div>
-                    )}
-                    {/* Informação de paginação */}
+                      )}
+                      {resultado.filtrosUsados.palavrasChave.map((p) => (
+                        <span
+                          key={p}
+                          className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                    </div>
                     {resultado.totalPaginas > 1 && (
                       <p className="mt-2 text-xs text-slate-500">
-                        Mostrando parte {resultado.numeroPagina} de {resultado.totalPaginas}
-                        {" "}({resultado.itens.length} contrato{resultado.itens.length !== 1 && "s"} nesta parte)
+                        Mostrando página {resultado.numeroPagina} de{" "}
+                        {fmtNum(resultado.totalPaginas)} ({resultado.itens.length} contrato
+                        {resultado.itens.length !== 1 && "s"} nesta página)
                       </p>
                     )}
                   </>
                 )}
               </div>
 
-              {/* Navegação */}
-              {resultado.totalFiltrados > 0 && resultado.totalPaginas > 1 && (
+              {resultado.totalRegistros > 0 && resultado.totalPaginas > 1 && (
                 <div className="flex shrink-0 items-center gap-2">
                   <Button
                     variant="outline"
@@ -606,15 +505,15 @@ export function PncpBuscaClient() {
           </section>
 
           {/* Lista vazia */}
-          {resultado.itens.length === 0 && resultado.totalRegistros > 0 && (
+          {resultado.itens.length === 0 && resultado.totalRegistros === 0 && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center">
               <Info className="mx-auto h-8 w-8 text-slate-400" />
               <p className="mt-3 text-sm font-medium text-slate-700">
-                Nenhum contrato combinou com seus filtros
+                Nenhum contrato encontrado
               </p>
               <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-                Tente remover ou trocar as palavras-chave e estados, ou amplie o período de
-                datas.
+                Tente outras palavras-chave, remova os filtros de estado, ou escreva de forma
+                diferente (ex: &quot;container&quot; ou &quot;contêiner&quot;).
               </p>
             </div>
           )}
@@ -632,9 +531,14 @@ export function PncpBuscaClient() {
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
                         {(resultado.numeroPagina - 1) * (Number(tamanho) || 20) + idx + 1}
                       </span>
-                      <p className="font-medium text-slate-900 leading-snug line-clamp-2">
-                        {row.objeto || row.titulo}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-900 leading-snug line-clamp-2">
+                          {row.titulo}
+                        </p>
+                        <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">
+                          {row.objeto !== row.titulo && row.objeto}
+                        </p>
+                      </div>
                     </div>
                     <p className="mt-1.5 ml-7 text-sm text-slate-600">{row.orgao}</p>
                     <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
@@ -656,6 +560,11 @@ export function PncpBuscaClient() {
                           })}
                         </span>
                       )}
+                      {row.modalidade && (
+                        <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">
+                          {row.modalidade}
+                        </span>
+                      )}
                       {row.categoria && (
                         <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-blue-700">
                           {row.categoria}
@@ -666,6 +575,16 @@ export function PncpBuscaClient() {
                           Publicado em{" "}
                           {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
                         </span>
+                      )}
+                      {row.urlPncp && (
+                        <a
+                          href={row.urlPncp}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
+                        >
+                          Ver no PNCP <ExternalLink className="h-3 w-3" />
+                        </a>
                       )}
                     </div>
                   </div>
@@ -685,7 +604,7 @@ export function PncpBuscaClient() {
           </div>
 
           {/* Navegação inferior */}
-          {resultado.totalFiltrados > 0 && resultado.totalPaginas > 1 && (
+          {resultado.totalRegistros > 0 && resultado.totalPaginas > 1 && (
             <div className="flex justify-center gap-2 pt-2">
               <Button
                 variant="outline"
@@ -702,7 +621,7 @@ export function PncpBuscaClient() {
                 Anterior
               </Button>
               <span className="flex items-center px-3 text-xs text-slate-500">
-                Parte {resultado.numeroPagina} de {resultado.totalPaginas}
+                Página {resultado.numeroPagina} de {fmtNum(resultado.totalPaginas)}
               </span>
               <Button
                 variant="outline"

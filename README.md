@@ -1,5 +1,17 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Deploy na VPS (Hostinger / Ubuntu)
+
+Guia completo: [`deploy/vps-postgres.md`](deploy/vps-postgres.md).
+
+Resumo na VPS (após clonar, Docker e Node 20+):
+
+1. `cp deploy/postgres.env.example deploy/postgres.env` e `cp deploy/vps-app.env.example .env` — edite senhas, `AUTH_SECRET`, `AUTH_URL`.
+2. `sudo bash deploy/vps-install-docker.sh` (uma vez; depois logout/login).
+3. `chmod +x deploy/*.sh && ./deploy/vps-full-deploy.sh`
+
+Não é possível rodar isso a partir do Cursor na sua máquina local; execute por **SSH** no servidor.
+
 ## Getting Started
 
 First, run the development server:

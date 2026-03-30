@@ -1,54 +1,49 @@
-import type { PncpContratoListaItem, PncpContratoRaw } from "./types";
+import type { PncpContratoListaItem } from "./types";
+import type { PncpSearchItem } from "./client";
 
-function idContrato(c: PncpContratoRaw): string {
-  return (
-    c.numeroControlePNCP ||
-    c.numeroControlePncpCompra ||
-    `${c.orgaoEntidade?.cnpj ?? "?"}-${c.processo ?? Date.now()}`
-  );
-}
+/**
+ * Converte um item da API de busca do PNCP para o formato interno.
+ */
+export function searchItemToListaItem(item: PncpSearchItem): PncpContratoListaItem {
+  const objeto = (item.description ?? "").replace(/\r\n/g, "\n").trim();
+  const titulo = item.title ?? "";
 
-export function toListaItem(c: PncpContratoRaw): PncpContratoListaItem {
-  const objeto = (c.objetoContrato ?? "").replace(/\r\n/g, "\n").trim();
-  const orgao = c.orgaoEntidade?.razaoSocial ?? "";
   return {
-    id: idContrato(c),
-    titulo: objeto.slice(0, 120) + (objeto.length > 120 ? "…" : "") || idContrato(c),
-    orgao,
-    objeto: objeto || orgao,
-    uf: c.unidadeOrgao?.ufSigla ?? "",
-    municipio: c.unidadeOrgao?.municipioNome ?? "",
-    valorGlobal: typeof c.valorGlobal === "number" ? c.valorGlobal : null,
-    dataPublicacao: c.dataPublicacaoPncp ?? null,
-    categoria: c.categoriaProcesso?.nome ?? c.tipoContrato?.nome ?? "",
-    raw: c,
+    id: item.id ?? item.numero_controle_pncp ?? `${item.orgao_cnpj}-${item.ano}-${item.numero_sequencial}`,
+    titulo: titulo || objeto.slice(0, 120) + (objeto.length > 120 ? "…" : ""),
+    orgao: item.orgao_nome ?? "",
+    objeto: objeto || titulo,
+    uf: item.uf ?? "",
+    municipio: item.municipio_nome ?? "",
+    valorGlobal: typeof item.valor_global === "number" ? item.valor_global : null,
+    dataPublicacao: item.data_publicacao_pncp ?? null,
+    categoria: item.tipo_contrato_nome ?? item.tipo_nome ?? "",
+    modalidade: item.modalidade_licitacao_nome ?? "",
+    esfera: item.esfera_nome ?? "",
+    urlPncp: item.item_url ? `https://pncp.gov.br${item.item_url}` : null,
+    raw: {
+      // Mapeia para o formato PncpContratoRaw para compatibilidade com a importação
+      numeroControlePNCP: item.numero_controle_pncp,
+      objetoContrato: objeto,
+      dataPublicacaoPncp: item.data_publicacao_pncp,
+      valorGlobal: item.valor_global ?? undefined,
+      orgaoEntidade: {
+        cnpj: item.orgao_cnpj,
+        razaoSocial: item.orgao_nome,
+      },
+      unidadeOrgao: {
+        ufSigla: item.uf,
+        municipioNome: item.municipio_nome,
+        nomeUnidade: item.unidade_nome,
+      },
+      categoriaProcesso: {
+        nome: item.tipo_contrato_nome,
+      },
+      tipoContrato: {
+        nome: item.tipo_nome,
+      },
+    },
   };
-}
-
-/** Filtro local: UFs (OR) e palavras-chave no texto (OR entre termos). */
-export function filtrarContratos(
-  itens: PncpContratoListaItem[],
-  ufs: string[],
-  termos: string[]
-): PncpContratoListaItem[] {
-  let out = itens;
-
-  const ufsOk = ufs.map((u) => u.trim().toUpperCase()).filter(Boolean);
-  if (ufsOk.length > 0) {
-    out = out.filter((i) => ufsOk.includes(i.uf.toUpperCase()));
-  }
-
-  const kw = termos
-    .map((t) => t.trim().toLowerCase())
-    .filter((t) => t.length > 1);
-  if (kw.length > 0) {
-    out = out.filter((i) => {
-      const blob = `${i.objeto} ${i.orgao} ${i.categoria}`.toLowerCase();
-      return kw.some((k) => blob.includes(k));
-    });
-  }
-
-  return out;
 }
 
 export function parsePalavrasChave(texto: string): string[] {

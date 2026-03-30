@@ -1,8 +1,14 @@
+const path = require('path')
+
+/** Sempre executa a partir da raiz do projeto (importante para .env e next start). */
+const root = __dirname
+
 module.exports = {
   apps: [
     {
       name: 'kanbamlicita',
-      script: 'node_modules/.bin/next',
+      cwd: root,
+      script: path.join(root, 'node_modules/.bin/next'),
       args: 'start',
       instances: 1,
       autorestart: true,

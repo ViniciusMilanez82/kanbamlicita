@@ -42,5 +42,8 @@ export type PncpContratoListaItem = {
   valorGlobal: number | null;
   dataPublicacao: string | null;
   categoria: string;
+  modalidade?: string;
+  esfera?: string;
+  urlPncp?: string | null;
   raw: PncpContratoRaw;
 };

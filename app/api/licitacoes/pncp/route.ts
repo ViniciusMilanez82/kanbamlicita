@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import type { PncpContratoRaw } from "@/lib/pncp/types";
-import { toListaItem } from "@/lib/pncp/normalize";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
 function linkPncp(c: PncpContratoRaw): string {
@@ -19,7 +18,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Campo 'raw' com objeto PNCP é obrigatório" }, { status: 400 });
   }
 
-  const item = toListaItem(raw);
+  // Extrai dados do raw para criar a licitação
+  const titulo = (raw.objetoContrato ?? "").slice(0, 500) || "Sem título";
+  const orgao = raw.orgaoEntidade?.razaoSocial ?? null;
+  const objeto = raw.objetoContrato ?? null;
+  const uf = raw.unidadeOrgao?.ufSigla ?? null;
+  const municipio = raw.unidadeOrgao?.municipioNome ?? null;
+  const valorGlobal = typeof raw.valorGlobal === "number" ? raw.valorGlobal : null;
+  const dataPublicacaoStr = raw.dataPublicacaoPncp ?? null;
+  const categoria = raw.categoriaProcesso?.nome ?? raw.tipoContrato?.nome ?? null;
+  const controle = raw.numeroControlePNCP ?? raw.numeroControlePncpCompra ?? "";
+
   const linkOrigem = linkPncp(raw);
 
   const existente = await db.licitacao.findFirst({ where: { linkOrigem } });
@@ -39,20 +48,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nenhuma coluna inicial configurada" }, { status: 500 });
   }
 
-  const dataPub = item.dataPublicacao ? new Date(item.dataPublicacao) : null;
+  const dataPub = dataPublicacaoStr ? new Date(dataPublicacaoStr) : null;
 
   const licitacao = await db.licitacao.create({
     data: {
-      titulo: item.titulo.slice(0, 500),
-      orgao: item.orgao || null,
-      objeto: item.objeto || null,
-      modalidade: item.categoria || null,
-      uf: item.uf || null,
-      municipio: item.municipio || null,
-      valorEstimado: item.valorGlobal,
+      titulo,
+      orgao,
+      objeto,
+      modalidade: categoria,
+      uf,
+      municipio,
+      valorEstimado: valorGlobal,
       dataPublicacao: dataPub && !Number.isNaN(dataPub.getTime()) ? dataPub : null,
       linkOrigem,
-      observacoes: `Importado do PNCP. Controle: ${item.id}`,
+      observacoes: `Importado do PNCP. Controle: ${controle || linkOrigem}`,
       dadosExtraidos: raw as object,
       card: {
         create: { colunaId: colunaInicial.id, ordem: 0 },
