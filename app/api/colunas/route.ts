@@ -54,3 +54,29 @@ export async function PUT(req: Request) {
 
   return NextResponse.json(coluna);
 }
+
+export async function DELETE(req: Request) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
+  if (auth.role !== "admin") {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { id } = body;
+
+  if (!id) return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
+
+  // Verifica se há cards nessa coluna
+  const cardsNaColuna = await db.kanbanCard.count({ where: { colunaId: id } });
+  if (cardsNaColuna > 0) {
+    return NextResponse.json(
+      { error: `Não é possível excluir: há ${cardsNaColuna} card(s) nesta coluna. Mova-os antes.` },
+      { status: 400 }
+    );
+  }
+
+  await db.kanbanColuna.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

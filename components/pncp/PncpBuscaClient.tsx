@@ -222,12 +222,12 @@ export function PncpBuscaClient() {
   });
 
   const importarMutation = useMutation({
-    mutationFn: async (raw: object) => {
+    mutationFn: async (item: { raw: object; urlPncp?: string | null }) => {
       const r = await fetch("/api/licitacoes/pncp", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw }),
+        body: JSON.stringify({ raw: item.raw, urlPncp: item.urlPncp }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(explicarErro(String(data.error ?? "")));
@@ -593,7 +593,7 @@ export function PncpBuscaClient() {
                     variant="default"
                     className="shrink-0 gap-1.5"
                     disabled={importarMutation.isPending}
-                    onClick={() => importarMutation.mutate(row.raw)}
+                    onClick={() => importarMutation.mutate({ raw: row.raw, urlPncp: row.urlPncp })}
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Adicionar ao meu painel

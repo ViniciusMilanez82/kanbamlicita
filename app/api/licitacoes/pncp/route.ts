@@ -3,9 +3,18 @@ import { db } from "@/lib/db";
 import type { PncpContratoRaw } from "@/lib/pncp/types";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
-function linkPncp(c: PncpContratoRaw): string {
+function idPncp(c: PncpContratoRaw): string {
   const id = c.numeroControlePNCP || c.numeroControlePncpCompra;
   return id ? `pncp-contrato:${id}` : `pncp-contrato:${Date.now()}`;
+}
+
+function urlPncp(c: PncpContratoRaw, urlFromSearch?: string | null): string | null {
+  if (urlFromSearch) {
+    return urlFromSearch.startsWith("http") ? urlFromSearch : `https://pncp.gov.br${urlFromSearch}`;
+  }
+  const id = c.numeroControlePNCP || c.numeroControlePncpCompra;
+  if (id) return `https://pncp.gov.br/app/editais/${id}`;
+  return null;
 }
 
 export async function POST(req: Request) {
@@ -14,6 +23,7 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const raw = body.raw as PncpContratoRaw | undefined;
+  const itemUrl = (body.urlPncp as string | undefined) ?? null;
   if (!raw || typeof raw !== "object") {
     return NextResponse.json({ error: "Campo 'raw' com objeto PNCP é obrigatório" }, { status: 400 });
   }
@@ -29,9 +39,12 @@ export async function POST(req: Request) {
   const categoria = raw.categoriaProcesso?.nome ?? raw.tipoContrato?.nome ?? null;
   const controle = raw.numeroControlePNCP ?? raw.numeroControlePncpCompra ?? "";
 
-  const linkOrigem = linkPncp(raw);
+  const dedupId = idPncp(raw);
+  const linkOrigem = urlPncp(raw, itemUrl) ?? dedupId;
 
-  const existente = await db.licitacao.findFirst({ where: { linkOrigem } });
+  const existente = await db.licitacao.findFirst({
+    where: { OR: [{ linkOrigem }, { linkOrigem: dedupId }] },
+  });
   if (existente) {
     return NextResponse.json(
       { error: "Esta publicação PNCP já foi importada", id: existente.id },
