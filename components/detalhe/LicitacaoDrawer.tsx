@@ -301,16 +301,24 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                 </div>
               )}
 
-              {licitacao.linkOrigem && (
-                <a
-                  href={licitacao.linkOrigem}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" /> Abrir edital original
-                </a>
-              )}
+              {licitacao.linkOrigem && (() => {
+                // Converte linkOrigem legado (pncp-contrato:ID) em URL real
+                let href = licitacao.linkOrigem as string;
+                if (href.startsWith("pncp-contrato:")) {
+                  const id = href.replace("pncp-contrato:", "");
+                  href = `https://pncp.gov.br/app/editais/${id}`;
+                }
+                return (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Abrir edital original
+                  </a>
+                );
+              })()}
 
               <section>
                 <h3 className="text-sm font-semibold text-slate-700 mb-2">

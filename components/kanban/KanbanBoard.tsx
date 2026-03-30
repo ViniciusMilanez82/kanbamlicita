@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard, KanbanCardOverlay } from "./KanbanCard";
-import { FilterBar } from "./FilterBar";
+import { FilterBar, type Filtros } from "./FilterBar";
 import { LicitacaoDrawer } from "@/components/detalhe/LicitacaoDrawer";
 import {
   Dialog,
@@ -39,6 +39,7 @@ interface CardData {
     uf: string | null;
     valorEstimado: number | null;
     dataSessao: string | null;
+    dataPublicacao: string | null;
     modalidade: string | null;
   };
   urgente: boolean;
@@ -73,7 +74,12 @@ function resolveDestinoColuna(
 
 export function KanbanBoard() {
   const queryClient = useQueryClient();
-  const [busca, setBusca] = useState("");
+  const [filtros, setFiltros] = useState<Filtros>({
+    busca: "",
+    uf: "",
+    modalidade: "",
+    urgente: "todos",
+  });
   const [drawerLicitacaoId, setDrawerLicitacaoId] = useState<string | null>(null);
 
   // Drag state
@@ -133,20 +139,50 @@ export function KanbanBoard() {
     },
   });
 
+  // Extrai UFs e modalidades distintas para os filtros
+  const { ufsDisponiveis, modalidadesDisponiveis } = useMemo(() => {
+    const lic = Array.isArray(licitacoes) ? licitacoes : [];
+    const ufSet = new Set<string>();
+    const modSet = new Set<string>();
+    for (const l of lic) {
+      if (l.uf) ufSet.add(l.uf);
+      if (l.modalidade) modSet.add(l.modalidade);
+    }
+    return {
+      ufsDisponiveis: [...ufSet].sort(),
+      modalidadesDisponiveis: [...modSet].sort(),
+    };
+  }, [licitacoes]);
+
   const colunasComCards = useMemo(() => {
     const cols = Array.isArray(colunas) ? colunas : [];
     const lic = Array.isArray(licitacoes) ? licitacoes : [];
-    const buscaLower = busca.toLowerCase();
+    const buscaLower = filtros.busca.toLowerCase();
+
     return cols.map((col: { id: string; nome: string; cor: string; tipo?: string }) => ({
       ...col,
       cards: lic
         .filter((l: { card: { colunaId: string } | null }) => l.card?.colunaId === col.id)
-        .filter((l: { titulo: string; orgao: string | null; objeto: string | null }) =>
-          !busca ||
-          l.titulo.toLowerCase().includes(buscaLower) ||
-          l.orgao?.toLowerCase().includes(buscaLower) ||
-          l.objeto?.toLowerCase().includes(buscaLower)
-        )
+        .filter((l: { titulo: string; orgao: string | null; objeto: string | null; uf: string | null; modalidade: string | null; card: { urgente: boolean } }) => {
+          // Busca por texto
+          if (filtros.busca &&
+            !l.titulo.toLowerCase().includes(buscaLower) &&
+            !l.orgao?.toLowerCase().includes(buscaLower) &&
+            !l.objeto?.toLowerCase().includes(buscaLower)
+          ) return false;
+
+          // Filtro UF
+          if (filtros.uf && l.uf !== filtros.uf) return false;
+
+          // Filtro modalidade
+          if (filtros.modalidade && l.modalidade !== filtros.modalidade) return false;
+
+          // Filtro urgente
+          if (filtros.urgente === "sim" && !l.card?.urgente) return false;
+          if (filtros.urgente === "nao" && l.card?.urgente) return false;
+
+          return true;
+        })
         .map((l: any) => ({
           id: l.card!.id,
           licitacao: {
@@ -156,13 +192,14 @@ export function KanbanBoard() {
             uf: l.uf,
             valorEstimado: l.valorEstimado,
             dataSessao: l.dataSessao,
+            dataPublicacao: l.dataPublicacao,
             modalidade: l.modalidade,
           },
           urgente: l.card!.urgente,
           responsavel: l.card!.responsavel,
         })),
     })) as ColunaData[];
-  }, [colunas, licitacoes, busca]);
+  }, [colunas, licitacoes, filtros]);
 
   /** Atualização otimista: move o card localmente no cache */
   const moverOtimista = useCallback(
@@ -258,7 +295,12 @@ export function KanbanBoard() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between">
-        <FilterBar busca={busca} onBuscaChange={setBusca} />
+        <FilterBar
+          filtros={filtros}
+          onChange={setFiltros}
+          ufs={ufsDisponiveis}
+          modalidades={modalidadesDisponiveis}
+        />
         <Button
           size="sm"
           onClick={() => setDrawerLicitacaoId("nova")}

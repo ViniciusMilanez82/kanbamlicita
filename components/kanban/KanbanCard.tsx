@@ -15,6 +15,7 @@ interface CardData {
     uf: string | null;
     valorEstimado: number | null;
     dataSessao: string | null;
+    dataPublicacao: string | null;
     modalidade: string | null;
   };
   urgente: boolean;
@@ -95,7 +96,13 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
         <span>{formatCurrency(card.licitacao.valorEstimado)}</span>
-        <span>{formatDate(card.licitacao.dataSessao)}</span>
+        {(card.licitacao.dataSessao || card.licitacao.dataPublicacao) && (
+          <span>
+            {card.licitacao.dataSessao
+              ? `Sessão: ${formatDate(card.licitacao.dataSessao)}`
+              : `Publicação: ${formatDate(card.licitacao.dataPublicacao)}`}
+          </span>
+        )}
       </div>
 
       {card.responsavel?.name && (
@@ -124,7 +131,9 @@ export function KanbanCardOverlay({ card }: { card: CardData }) {
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
         <span>{formatCurrency(card.licitacao.valorEstimado)}</span>
-        <span>{formatDate(card.licitacao.dataSessao)}</span>
+        {(card.licitacao.dataSessao || card.licitacao.dataPublicacao) && (
+          <span>{formatDate(card.licitacao.dataSessao ?? card.licitacao.dataPublicacao)}</span>
+        )}
       </div>
     </div>
   );

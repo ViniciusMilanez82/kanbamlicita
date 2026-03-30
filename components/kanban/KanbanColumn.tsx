@@ -13,6 +13,7 @@ interface CardData {
     uf: string | null;
     valorEstimado: number | null;
     dataSessao: string | null;
+    dataPublicacao: string | null;
     modalidade: string | null;
   };
   urgente: boolean;
