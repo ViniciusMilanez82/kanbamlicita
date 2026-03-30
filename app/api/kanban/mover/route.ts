@@ -1,62 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { validateMove, KanbanMoveError, KanbanColuna } from '@/lib/kanban'
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { cardId, colunaDestino, motivo } = body as {
-      cardId: string
-      colunaDestino: string
-      motivo?: string
-    }
+export async function POST(req: Request) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
-    if (!cardId || !colunaDestino) {
-      return NextResponse.json({ error: 'cardId e colunaDestino são obrigatórios' }, { status: 400 })
-    }
+  const body = await req.json();
+  const { cardId, colunaDestinoId, motivo } = body;
 
-    // Buscar score do card para validar FN
-    const card = await db.kanbanCard.findUnique({
+  if (!cardId || !colunaDestinoId) {
+    return NextResponse.json({ error: "cardId e colunaDestinoId são obrigatórios" }, { status: 400 });
+  }
+
+  const card = await db.kanbanCard.findUnique({
+    where: { id: cardId },
+    include: { coluna: true },
+  });
+
+  if (!card) return NextResponse.json({ error: "Card não encontrado" }, { status: 404 });
+
+  const colunaDestino = await db.kanbanColuna.findUnique({ where: { id: colunaDestinoId } });
+  if (!colunaDestino) return NextResponse.json({ error: "Coluna destino não encontrada" }, { status: 404 });
+
+  if (colunaDestino.tipo === "final_negativo" && !motivo) {
+    return NextResponse.json({ error: "Motivo é obrigatório para esta coluna" }, { status: 400 });
+  }
+
+  const u = await db.user.findUnique({
+    where: { id: auth.userId },
+    select: { name: true },
+  });
+
+  const [updated] = await db.$transaction([
+    db.kanbanCard.update({
       where: { id: cardId },
-      include: {
-        licitacao: {
-          include: { score: { select: { falsoNegativoNivelRisco: true } } },
-        },
-      },
-    })
-
-    if (!card) {
-      return NextResponse.json({ error: 'Card não encontrado' }, { status: 404 })
-    }
-
-    const falsoNegativoNivelRisco = card.licitacao.score?.falsoNegativoNivelRisco ?? 'baixo'
-
-    validateMove({ colunaDestino, falsoNegativoNivelRisco, motivo })
-
-    const colunaOrigem = card.colunaAtual
-
-    await db.kanbanCard.update({
-      where: { id: cardId },
-      data: { colunaAtual: colunaDestino as KanbanColuna },
-    })
-
-    await db.kanbanMovimentacao.create({
+      data: { colunaId: colunaDestinoId },
+      include: { coluna: true },
+    }),
+    db.movimentacao.create({
       data: {
         cardId,
         licitacaoId: card.licitacaoId,
-        colunaOrigem,
-        colunaDestino: colunaDestino as KanbanColuna,
-        automatico: false,
+        colunaOrigem: card.coluna.nome,
+        colunaDestino: colunaDestino.nome,
         motivo,
+        movidoPor: u?.name ?? auth.userId,
       },
-    })
+    }),
+  ]);
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    if (error instanceof KanbanMoveError) {
-      return NextResponse.json({ error: error.code }, { status: 400 })
-    }
-    console.error('[POST /api/kanban/mover]', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
-  }
+  return NextResponse.json(updated);
 }

@@ -46,3 +46,6 @@ next-env.d.ts
 
 /lib/generated/prisma
 .env.local
+
+# credenciais do Postgres na VPS (Docker)
+deploy/postgres.env

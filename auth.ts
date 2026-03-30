@@ -1,6 +1,5 @@
 // auth.ts
 import NextAuth from 'next-auth'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import Credentials from 'next-auth/providers/credentials'
 import { db } from '@/lib/db'
 import { buildAuthorize } from '@/lib/auth/authorize'
@@ -10,7 +9,7 @@ const authorize = buildAuthorize((email) =>
 )
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db),
+  trustHost: true,
   session: { strategy: 'jwt' },
   providers: [
     Credentials({

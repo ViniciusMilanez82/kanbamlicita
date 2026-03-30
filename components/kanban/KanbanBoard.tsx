@@ -1,228 +1,373 @@
-'use client'
+"use client";
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
+  DragEndEvent,
+  DragStartEvent,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from '@dnd-kit/core'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { KanbanColumn } from './KanbanColumn'
-import { LicitacaoCard } from './LicitacaoCard'
-import { MoveKanbanModal } from './MoveKanbanModal'
-import { FilterBar, type FiltrosKanban } from './FilterBar'
-import { MetricsCardsRow } from './MetricsCardsRow'
-import { KANBAN_COLUNAS, KANBAN_COLUNA_LABELS, type KanbanColuna } from '@/lib/kanban'
-import type { LicitacaoComCard, KanbanMetricas } from '@/types/licitacao'
+  closestCorners,
+} from "@dnd-kit/core";
+import { KanbanColumn } from "./KanbanColumn";
+import { KanbanCard, KanbanCardOverlay } from "./KanbanCard";
+import { FilterBar, type Filtros } from "./FilterBar";
+import { LicitacaoDrawer } from "@/components/detalhe/LicitacaoDrawer";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus } from "lucide-react";
 
-const FILTROS_INICIAIS: FiltrosKanban = {
-  busca: '',
-  segmento: 'todos',
-  classificacao: 'todas',
-  uf: 'todas',
-  urgentes: false,
-  riscoAltoFn: false,
-  responsavelId: '',
+interface CardData {
+  id: string;
+  licitacao: {
+    id: string;
+    numero: number;
+    titulo: string;
+    orgao: string | null;
+    uf: string | null;
+    valorEstimado: number | null;
+    dataSessao: string | null;
+    dataPublicacao: string | null;
+    modalidade: string | null;
+  };
+  urgente: boolean;
+  responsavel: { name: string | null } | null;
 }
 
-type MoveState = {
-  licitacao: LicitacaoComCard
-  colunaDestino: KanbanColuna | null   // null quando aberto pelo botão (sem destino pré-definido)
-} | null
+interface ColunaData {
+  id: string;
+  nome: string;
+  cor: string;
+  tipo?: string;
+  cards: CardData[];
+}
 
-export function KanbanBoard({ initialData }: { initialData: LicitacaoComCard[] }) {
-  const queryClient = useQueryClient()
-  const [filtros, setFiltros] = useState<FiltrosKanban>(FILTROS_INICIAIS)
-  const [activeDrag, setActiveDrag] = useState<LicitacaoComCard | null>(null)
-  const [pendingMove, setPendingMove] = useState<MoveState>(null)
+/** Encontra a coluna de destino — over.id pode ser uma coluna ou um card */
+function resolveDestinoColuna(
+  overId: string,
+  colunas: ColunaData[]
+): ColunaData | null {
+  // Primeiro tenta encontrar como coluna diretamente
+  const colDir = colunas.find((c) => c.id === overId);
+  if (colDir) return colDir;
+
+  // Senão, procura qual coluna contém o card com esse id
+  for (const col of colunas) {
+    if (col.cards.some((card) => card.id === overId)) {
+      return col;
+    }
+  }
+  return null;
+}
+
+export function KanbanBoard() {
+  const queryClient = useQueryClient();
+  const [filtros, setFiltros] = useState<Filtros>({
+    busca: "",
+    uf: "",
+    modalidade: "",
+    urgente: "todos",
+  });
+  const [drawerLicitacaoId, setDrawerLicitacaoId] = useState<string | null>(null);
+
+  // Drag state
+  const [activeCard, setActiveCard] = useState<CardData | null>(null);
+  const isDraggingRef = useRef(false);
+
+  // Modal de motivo (substitui prompt do navegador)
+  const [motivoDialog, setMotivoDialog] = useState<{
+    cardId: string;
+    colunaDestinoId: string;
+    colunaNome: string;
+  } | null>(null);
+  const [motivoTexto, setMotivoTexto] = useState("");
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  )
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
 
-  const { data } = useQuery<{ licitacoes: LicitacaoComCard[] }>({
-    queryKey: ['licitacoes'],
-    queryFn: () => fetch('/api/licitacoes').then((r) => r.json()),
-    initialData: { licitacoes: initialData },
-    staleTime: 30_000,
-  })
+  const { data: colunas = [] } = useQuery({
+    queryKey: ["colunas"],
+    queryFn: async () => {
+      const r = await fetch("/api/colunas");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar colunas");
+      return data;
+    },
+  });
 
-  const { data: metricasData } = useQuery<KanbanMetricas>({
-    queryKey: ['kanban-metricas'],
-    queryFn: () => fetch('/api/kanban/metricas').then((r) => r.json()),
-  })
-
-  const { data: usuariosData } = useQuery<{ usuarios: { id: string; name: string | null }[] }>({
-    queryKey: ['usuarios-ativos'],
-    queryFn: () => fetch('/api/usuarios-ativos').then((r) => r.json()),
-    staleTime: 60_000,
-  })
-  const usuariosAtivos = usuariosData?.usuarios ?? []
+  const { data: licitacoes = [] } = useQuery({
+    queryKey: ["licitacoes"],
+    queryFn: async () => {
+      const r = await fetch("/api/licitacoes");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Erro ao carregar licitações");
+      return data;
+    },
+  });
 
   const moverMutation = useMutation({
-    mutationFn: async (input: { cardId: string; colunaDestino: string; motivo?: string }) => {
-      const res = await fetch('/api/kanban/mover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      })
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.error ?? 'Erro ao mover card')
-      }
-      return res.json()
-    },
+    mutationFn: (data: { cardId: string; colunaDestinoId: string; motivo?: string }) =>
+      fetch("/api/kanban/mover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then((r) => {
+        if (!r.ok) return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
+        return r.json();
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['licitacoes'] })
-      queryClient.invalidateQueries({ queryKey: ['kanban-metricas'] })
+      queryClient.invalidateQueries({ queryKey: ["licitacoes"] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message)
+    onError: (e: Error) => {
+      // Reverte atualização otimista
+      queryClient.invalidateQueries({ queryKey: ["licitacoes"] });
+      toast.error(e.message);
     },
-  })
+  });
 
-  const licitacoes = data?.licitacoes ?? initialData
+  // Extrai UFs e modalidades distintas para os filtros
+  const { ufsDisponiveis, modalidadesDisponiveis } = useMemo(() => {
+    const lic = Array.isArray(licitacoes) ? licitacoes : [];
+    const ufSet = new Set<string>();
+    const modSet = new Set<string>();
+    for (const l of lic) {
+      if (l.uf) ufSet.add(l.uf);
+      if (l.modalidade) modSet.add(l.modalidade);
+    }
+    return {
+      ufsDisponiveis: [...ufSet].sort(),
+      modalidadesDisponiveis: [...modSet].sort(),
+    };
+  }, [licitacoes]);
 
-  const licitacoesFiltradas = useMemo(() => {
-    return licitacoes.filter((l) => {
-      if (filtros.busca) {
-        const termo = filtros.busca.toLowerCase()
-        const noObjeto = l.objetoResumido?.toLowerCase().includes(termo)
-        const noOrgao = l.orgao?.toLowerCase().includes(termo)
-        if (!noObjeto && !noOrgao) return false
+  const colunasComCards = useMemo(() => {
+    const cols = Array.isArray(colunas) ? colunas : [];
+    const lic = Array.isArray(licitacoes) ? licitacoes : [];
+    const buscaLower = filtros.busca.toLowerCase();
+
+    return cols.map((col: { id: string; nome: string; cor: string; tipo?: string }) => ({
+      ...col,
+      cards: lic
+        .filter((l: { card: { colunaId: string } | null }) => l.card?.colunaId === col.id)
+        .filter((l: { titulo: string; orgao: string | null; objeto: string | null; uf: string | null; modalidade: string | null; card: { urgente: boolean } }) => {
+          // Busca por texto
+          if (filtros.busca &&
+            !l.titulo.toLowerCase().includes(buscaLower) &&
+            !l.orgao?.toLowerCase().includes(buscaLower) &&
+            !l.objeto?.toLowerCase().includes(buscaLower)
+          ) return false;
+
+          // Filtro UF
+          if (filtros.uf && l.uf !== filtros.uf) return false;
+
+          // Filtro modalidade
+          if (filtros.modalidade && l.modalidade !== filtros.modalidade) return false;
+
+          // Filtro urgente
+          if (filtros.urgente === "sim" && !l.card?.urgente) return false;
+          if (filtros.urgente === "nao" && l.card?.urgente) return false;
+
+          return true;
+        })
+        .map((l: any) => ({
+          id: l.card!.id,
+          licitacao: {
+            id: l.id,
+            numero: l.numero,
+            titulo: l.titulo,
+            orgao: l.orgao,
+            uf: l.uf,
+            valorEstimado: l.valorEstimado,
+            dataSessao: l.dataSessao,
+            dataPublicacao: l.dataPublicacao,
+            modalidade: l.modalidade,
+          },
+          urgente: l.card!.urgente,
+          responsavel: l.card!.responsavel,
+        })),
+    })) as ColunaData[];
+  }, [colunas, licitacoes, filtros]);
+
+  /** Atualização otimista: move o card localmente no cache */
+  const moverOtimista = useCallback(
+    (cardId: string, colunaDestinoId: string) => {
+      queryClient.setQueryData(["licitacoes"], (old: any[]) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((l) => {
+          if (l.card?.id === cardId) {
+            return { ...l, card: { ...l.card, colunaId: colunaDestinoId } };
+          }
+          return l;
+        });
+      });
+    },
+    [queryClient]
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    isDraggingRef.current = true;
+    const cardId = event.active.id as string;
+    // Encontra o card ativo para mostrar no overlay
+    for (const col of colunasComCards) {
+      const found = col.cards.find((c) => c.id === cardId);
+      if (found) {
+        setActiveCard(found);
+        break;
       }
-      if (filtros.segmento !== 'todos' && l.segmento !== filtros.segmento) return false
-      if (filtros.classificacao !== 'todas' && l.score?.faixaClassificacao !== filtros.classificacao) return false
-      if (filtros.uf !== 'todas' && l.uf !== filtros.uf) return false
-      if (filtros.urgentes && !l.card.urgente) return false
-      if (filtros.riscoAltoFn && l.score?.falsoNegativoNivelRisco !== 'alto') return false
-      if (filtros.responsavelId && l.card.responsavel?.id !== filtros.responsavelId) return false
-      return true
-    })
-  }, [licitacoes, filtros])
-
-  const porColuna = useMemo(() => {
-    const map: Record<KanbanColuna, LicitacaoComCard[]> = {} as never
-    KANBAN_COLUNAS.forEach((c) => { map[c] = [] })
-    licitacoesFiltradas.forEach((l) => {
-      const coluna = l.card.colunaAtual as KanbanColuna
-      if (map[coluna]) map[coluna].push(l)
-    })
-    return map
-  }, [licitacoesFiltradas])
-
-  const segmentosDisponiveis = useMemo(() =>
-    [...new Set(licitacoes.map((l) => l.segmento).filter(Boolean))] as string[],
-    [licitacoes]
-  )
-  const ufsDisponiveis = useMemo(() =>
-    [...new Set(licitacoes.map((l) => l.uf).filter(Boolean))].sort() as string[],
-    [licitacoes]
-  )
-
-  function onDragStart(event: DragStartEvent) {
-    const l = licitacoes.find((l) => l.id === event.active.id)
-    if (l) setActiveDrag(l)
+    }
   }
 
-  function onDragEnd(event: DragEndEvent) {
-    setActiveDrag(null)
-    const { active, over } = event
-    if (!over) return
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveCard(null);
+    // Pequeno delay para não disparar click após drag
+    setTimeout(() => { isDraggingRef.current = false; }, 100);
 
-    const colunaDestino = over.id as KanbanColuna
-    const licitacao = licitacoes.find((l) => l.id === active.id)
-    if (!licitacao) return
-    if (licitacao.card.colunaAtual === colunaDestino) return
+    const { active, over } = event;
+    if (!over) return;
 
-    if (colunaDestino === 'descartadas' && licitacao.score?.falsoNegativoNivelRisco === 'alto') {
-      toast.error('Falso negativo alto: revisão humana obrigatória antes de descartar.')
-      return
+    const cardId = active.id as string;
+    const colDestino = resolveDestinoColuna(over.id as string, colunasComCards);
+    if (!colDestino) return;
+
+    // Verifica se o card já está nessa coluna
+    const colunaOrigem = colunasComCards.find((c) =>
+      c.cards.some((card) => card.id === cardId)
+    );
+    if (colunaOrigem?.id === colDestino.id) return;
+
+    if (colDestino.tipo === "final_negativo") {
+      // Abre modal para pedir motivo
+      setMotivoDialog({
+        cardId,
+        colunaDestinoId: colDestino.id,
+        colunaNome: colDestino.nome,
+      });
+    } else {
+      // Move direto com atualização otimista
+      moverOtimista(cardId, colDestino.id);
+      moverMutation.mutate({ cardId, colunaDestinoId: colDestino.id });
     }
-
-    if (colunaDestino === 'descartadas' || colunaDestino === 'perdemos') {
-      setPendingMove({ licitacao, colunaDestino })
-      return
-    }
-
-    if (colunaDestino === 'viavel_comercialmente' && !licitacao.score) {
-      toast.warning('Este card ainda não tem score calculado. Preencha o score antes de prosseguir comercialmente.', {
-        duration: 6000,
-      })
-    }
-
-    moverMutation.mutate({ cardId: licitacao.card.id, colunaDestino })
   }
 
-  function handleModalConfirm(colunaDestino: KanbanColuna, motivo?: string) {
-    if (!pendingMove) return
+  function handleDragCancel() {
+    setActiveCard(null);
+    setTimeout(() => { isDraggingRef.current = false; }, 100);
+  }
 
-    if (colunaDestino === 'viavel_comercialmente' && !pendingMove.licitacao.score) {
-      toast.warning('Este card ainda não tem score calculado. Preencha o score antes de prosseguir comercialmente.', {
-        duration: 6000,
-      })
+  function confirmarMotivo() {
+    if (!motivoDialog || !motivoTexto.trim()) {
+      toast.error("Informe o motivo para mover o card.");
+      return;
     }
-
+    moverOtimista(motivoDialog.cardId, motivoDialog.colunaDestinoId);
     moverMutation.mutate({
-      cardId: pendingMove.licitacao.card.id,
-      colunaDestino,
-      motivo,
-    })
-    setPendingMove(null)
+      cardId: motivoDialog.cardId,
+      colunaDestinoId: motivoDialog.colunaDestinoId,
+      motivo: motivoTexto.trim(),
+    });
+    setMotivoDialog(null);
+    setMotivoTexto("");
   }
 
-  const metricas: KanbanMetricas = metricasData ?? {
-    captadasHoje: 0, emAnalise: 0, classificacaoAouAPlus: 0, urgentes: 0, riscoAltoFalsoNegativo: 0,
+  function cancelarMotivo() {
+    setMotivoDialog(null);
+    setMotivoTexto("");
+  }
+
+  function handleCardClick(licitacaoId: string) {
+    if (isDraggingRef.current) return;
+    setDrawerLicitacaoId(licitacaoId);
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <MetricsCardsRow metricas={metricas} />
-
-      <FilterBar
-        filtros={filtros}
-        onChange={setFiltros}
-        segmentosDisponiveis={segmentosDisponiveis}
-        ufsDisponiveis={ufsDisponiveis}
-        usuariosAtivos={usuariosAtivos}
-      />
-
-      <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
-        <DndContext id="kanban-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <div className="flex gap-3 h-full">
-            {KANBAN_COLUNAS.map((coluna) => (
-              <KanbanColumn
-                key={coluna}
-                coluna={coluna}
-                label={KANBAN_COLUNA_LABELS[coluna]}
-                licitacoes={porColuna[coluna]}
-                onMoverCard={(l) => setPendingMove({ licitacao: l, colunaDestino: null })}
-              />
-            ))}
-          </div>
-
-          <DragOverlay>
-            {activeDrag && (
-              <div className="rotate-2 opacity-90 w-64">
-                <LicitacaoCard licitacao={activeDrag} onMover={() => {}} />
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between">
+        <FilterBar
+          filtros={filtros}
+          onChange={setFiltros}
+          ufs={ufsDisponiveis}
+          modalidades={modalidadesDisponiveis}
+        />
+        <Button
+          size="sm"
+          onClick={() => setDrawerLicitacaoId("nova")}
+          className="shrink-0"
+        >
+          <Plus className="mr-1 h-4 w-4" /> Nova Licitação
+        </Button>
       </div>
 
-      <MoveKanbanModal
-        open={!!pendingMove}
-        colunaDestino={pendingMove?.colunaDestino ?? null}
-        colunaAtual={pendingMove?.licitacao.card.colunaAtual}
-        onConfirm={handleModalConfirm}
-        onCancel={() => setPendingMove(null)}
-      />
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <div className="flex flex-1 gap-3 overflow-x-auto pb-4">
+          {colunasComCards.map((col) => (
+            <KanbanColumn
+              key={col.id}
+              column={col}
+              onCardClick={handleCardClick}
+            />
+          ))}
+        </div>
+
+        <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
+          {activeCard ? <KanbanCardOverlay card={activeCard} /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Modal de motivo (substitui prompt do navegador) */}
+      <Dialog open={!!motivoDialog} onOpenChange={(open) => !open && cancelarMotivo()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Motivo da movimentação</DialogTitle>
+            <DialogDescription>
+              Por que este card está sendo movido para{" "}
+              <strong>{motivoDialog?.colunaNome}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Ex: Licitação cancelada pelo órgão, prazo expirado..."
+            value={motivoTexto}
+            onChange={(e) => setMotivoTexto(e.target.value)}
+            rows={3}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelarMotivo}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmarMotivo} disabled={!motivoTexto.trim()}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {drawerLicitacaoId && (
+        <LicitacaoDrawer
+          licitacaoId={drawerLicitacaoId}
+          onClose={() => setDrawerLicitacaoId(null)}
+        />
+      )}
     </div>
-  )
+  );
 }

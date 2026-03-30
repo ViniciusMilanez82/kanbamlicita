@@ -1,113 +1,89 @@
-'use client'
+"use client";
 
-import { Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from "@/components/ui/input";
+import { Search, X, Filter } from "lucide-react";
 
-export type FiltrosKanban = {
-  busca: string
-  segmento: string
-  classificacao: string
-  uf: string
-  urgentes: boolean
-  riscoAltoFn: boolean
-  responsavelId: string   // '' = todos
+export interface Filtros {
+  busca: string;
+  uf: string;
+  modalidade: string;
+  urgente: "todos" | "sim" | "nao";
 }
 
-type Props = {
-  filtros: FiltrosKanban
-  onChange: (filtros: FiltrosKanban) => void
-  segmentosDisponiveis: string[]
-  ufsDisponiveis: string[]
-  usuariosAtivos: { id: string; name: string | null }[]
+interface FilterBarProps {
+  filtros: Filtros;
+  onChange: (f: Filtros) => void;
+  ufs: string[];
+  modalidades: string[];
 }
 
-export function FilterBar({ filtros, onChange, segmentosDisponiveis, ufsDisponiveis, usuariosAtivos }: Props) {
-  const update = (partial: Partial<FiltrosKanban>) =>
-    onChange({ ...filtros, ...partial })
+export function FilterBar({ filtros, onChange, ufs, modalidades }: FilterBarProps) {
+  const temFiltroAtivo =
+    filtros.busca || filtros.uf || filtros.modalidade || filtros.urgente !== "todos";
+
+  function limpar() {
+    onChange({ busca: "", uf: "", modalidade: "", urgente: "todos" });
+  }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b bg-slate-50">
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* Busca por texto */}
+      <div className="relative flex-1 min-w-[200px] max-w-md">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Buscar objeto ou órgão..."
-          className="pl-7 h-8 text-xs w-56"
+          placeholder="Buscar por título, órgão ou objeto..."
           value={filtros.busca}
-          onChange={(e) => update({ busca: e.target.value })}
+          onChange={(e) => onChange({ ...filtros, busca: e.target.value })}
+          className="pl-8"
         />
       </div>
 
-      <Select value={filtros.segmento} onValueChange={(v) => update({ segmento: v ?? filtros.segmento })}>
-        <SelectTrigger className="h-8 text-xs w-40">
-          <SelectValue placeholder="Segmento" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todos">Todos</SelectItem>
-          {segmentosDisponiveis.map((s) => (
-            <SelectItem key={s} value={s}>{s}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={filtros.classificacao} onValueChange={(v) => update({ classificacao: v ?? filtros.classificacao })}>
-        <SelectTrigger className="h-8 text-xs w-36">
-          <SelectValue placeholder="Classificação" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todas">Todas</SelectItem>
-          {['A+', 'A', 'B', 'C', 'D'].map((f) => (
-            <SelectItem key={f} value={f}>{f}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={filtros.uf} onValueChange={(v) => update({ uf: v ?? filtros.uf })}>
-        <SelectTrigger className="h-8 text-xs w-28">
-          <SelectValue placeholder="UF" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todas">Todas</SelectItem>
-          {ufsDisponiveis.map((u) => (
-            <SelectItem key={u} value={u}>{u}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={filtros.responsavelId === '' ? 'todos' : filtros.responsavelId}
-        onValueChange={(v) => update({ responsavelId: v == null || v === 'todos' ? '' : v })}
+      {/* UF */}
+      <select
+        className="rounded-md border bg-white px-2.5 py-2 text-sm text-slate-600"
+        value={filtros.uf}
+        onChange={(e) => onChange({ ...filtros, uf: e.target.value })}
       >
-        <SelectTrigger className="h-8 text-xs w-40">
-          <SelectValue placeholder="Responsável" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todos">Todos</SelectItem>
-          {usuariosAtivos.map((u) => (
-            <SelectItem key={u.id} value={u.id}>{u.name ?? u.id}</SelectItem>
+        <option value="">Todos os estados</option>
+        {ufs.map((uf) => (
+          <option key={uf} value={uf}>{uf}</option>
+        ))}
+      </select>
+
+      {/* Modalidade */}
+      {modalidades.length > 0 && (
+        <select
+          className="rounded-md border bg-white px-2.5 py-2 text-sm text-slate-600"
+          value={filtros.modalidade}
+          onChange={(e) => onChange({ ...filtros, modalidade: e.target.value })}
+        >
+          <option value="">Todas as modalidades</option>
+          {modalidades.map((m) => (
+            <option key={m} value={m}>{m}</option>
           ))}
-        </SelectContent>
-      </Select>
+        </select>
+      )}
 
-      <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={filtros.urgentes}
-          onChange={(e) => update({ urgentes: e.target.checked })}
-          className="rounded border-slate-300"
-        />
-        Urgentes
-      </label>
+      {/* Urgente */}
+      <select
+        className="rounded-md border bg-white px-2.5 py-2 text-sm text-slate-600"
+        value={filtros.urgente}
+        onChange={(e) => onChange({ ...filtros, urgente: e.target.value as Filtros["urgente"] })}
+      >
+        <option value="todos">Urgência: todos</option>
+        <option value="sim">Só urgentes</option>
+        <option value="nao">Não urgentes</option>
+      </select>
 
-      <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={filtros.riscoAltoFn}
-          onChange={(e) => update({ riscoAltoFn: e.target.checked })}
-          className="rounded border-slate-300"
-        />
-        Risco alto FN
-      </label>
+      {/* Limpar filtros */}
+      {temFiltroAtivo && (
+        <button
+          onClick={limpar}
+          className="flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-500 hover:bg-slate-50"
+        >
+          <X className="h-3.5 w-3.5" /> Limpar
+        </button>
+      )}
     </div>
-  )
+  );
 }

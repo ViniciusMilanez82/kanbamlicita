@@ -1,77 +1,81 @@
-import { useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { LicitacaoCard } from './LicitacaoCard'
-import type { KanbanColuna } from '@/lib/kanban'
-import type { LicitacaoComCard } from '@/types/licitacao'
+"use client";
 
-function SortableCard({
-  licitacao,
-  onMover,
-}: {
-  licitacao: LicitacaoComCard
-  onMover: () => void
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: licitacao.id })
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { KanbanCard } from "./KanbanCard";
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LicitacaoCard licitacao={licitacao} onMover={onMover} />
-    </div>
-  )
+interface CardData {
+  id: string;
+  licitacao: {
+    id: string;
+    numero: number;
+    titulo: string;
+    orgao: string | null;
+    uf: string | null;
+    valorEstimado: number | null;
+    dataSessao: string | null;
+    dataPublicacao: string | null;
+    modalidade: string | null;
+  };
+  urgente: boolean;
+  responsavel: { name: string | null } | null;
 }
 
-type Props = {
-  coluna: KanbanColuna
-  label: string
-  licitacoes: LicitacaoComCard[]
-  onMoverCard: (licitacao: LicitacaoComCard) => void
+interface ColumnData {
+  id: string;
+  nome: string;
+  cor: string;
+  cards: CardData[];
 }
 
-export function KanbanColumn({ coluna, label, licitacoes, onMoverCard }: Props) {
-  const { setNodeRef, isOver } = useDroppable({ id: coluna })
+interface KanbanColumnProps {
+  column: ColumnData;
+  onCardClick: (licitacaoId: string) => void;
+}
+
+export function KanbanColumn({ column, onCardClick }: KanbanColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
-    <div className="flex w-64 flex-shrink-0 flex-col">
-      {/* Cabeçalho da coluna */}
-      <div className="flex items-center justify-between px-2 py-2 rounded-t-lg bg-[#1D4ED8] border border-b-0 border-[#1D4ED8]">
-        <h2 className="text-xs font-semibold text-white truncate">{label}</h2>
-        <span className="ml-2 rounded-full bg-blue-900 px-1.5 py-0.5 text-[10px] font-medium text-blue-100">
-          {licitacoes.length}
+    <div
+      className={`flex w-72 shrink-0 flex-col rounded-lg transition-all duration-150
+        ${isOver ? "bg-blue-50 ring-2 ring-blue-400 scale-[1.01]" : "bg-slate-50"}
+      `}
+    >
+      <div
+        className="flex items-center justify-between rounded-t-lg px-3 py-2"
+        style={{ backgroundColor: column.cor }}
+      >
+        <span className="text-sm font-semibold text-white">{column.nome}</span>
+        <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">
+          {column.cards.length}
         </span>
       </div>
 
-      {/* Área de drop */}
       <div
         ref={setNodeRef}
-        className={`flex flex-col gap-2 rounded-b-lg border p-2 flex-1 min-h-16 transition-colors ${
-          isOver ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'
-        }`}
+        className={`flex-1 space-y-2 overflow-y-auto p-2 transition-colors duration-150
+          ${isOver ? "bg-blue-50/50" : ""}
+          ${column.cards.length === 0 ? "min-h-[80px]" : ""}
+        `}
+        style={{ maxHeight: "calc(100vh - 180px)" }}
       >
-        <SortableContext
-          items={licitacoes.map((l) => l.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {licitacoes.map((l) => (
-            <SortableCard
-              key={l.id}
-              licitacao={l}
-              onMover={() => onMoverCard(l)}
+        <SortableContext items={column.cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          {column.cards.map((card) => (
+            <KanbanCard
+              key={card.id}
+              card={card}
+              onClick={() => onCardClick(card.licitacao.id)}
             />
           ))}
         </SortableContext>
 
-        {licitacoes.length === 0 && (
-          <p className="text-center text-[10px] text-slate-300 py-4">Vazia</p>
+        {column.cards.length === 0 && !isOver && (
+          <p className="py-4 text-center text-xs text-slate-400">
+            Arraste cards para cá
+          </p>
         )}
       </div>
     </div>
-  )
+  );
 }

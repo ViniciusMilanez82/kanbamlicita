@@ -1,29 +1,27 @@
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 
-export async function GET() {
-  try {
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
+export async function GET(req: Request) {
+  const auth = await getAuthFromRequest(req);
+  if (!auth) return naoAutenticado();
 
-    const [captadasHoje, emAnalise, classificacaoAouAPlus, urgentes, riscoAltoFalsoNegativo] =
-      await Promise.all([
-        db.kanbanCard.count({ where: { criadoEm: { gte: hoje } } }),
-        db.kanbanCard.count({ where: { colunaAtual: 'em_analise' } }),
-        db.licitacaoScore.count({ where: { faixaClassificacao: { in: ['A', 'A+'] } } }),
-        db.kanbanCard.count({ where: { urgente: true } }),
-        db.licitacaoScore.count({ where: { falsoNegativoNivelRisco: 'alto' } }),
-      ])
+  const colunas = await db.kanbanColuna.findMany({
+    where: { ativo: true },
+    orderBy: { ordem: "asc" },
+    include: { _count: { select: { cards: true } } },
+  });
 
-    return NextResponse.json({
-      captadasHoje,
-      emAnalise,
-      classificacaoAouAPlus,
-      urgentes,
-      riscoAltoFalsoNegativo,
-    })
-  } catch (error) {
-    console.error('[GET /api/kanban/metricas]', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
-  }
+  const urgentes = await db.kanbanCard.count({ where: { urgente: true } });
+  const total = await db.kanbanCard.count();
+
+  return NextResponse.json({
+    total,
+    urgentes,
+    porColuna: colunas.map((c) => ({
+      colunaId: c.id,
+      colunaNome: c.nome,
+      count: c._count.cards,
+    })),
+  });
 }
