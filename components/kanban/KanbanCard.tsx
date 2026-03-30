@@ -10,6 +10,7 @@ interface CardData {
   id: string;
   licitacao: {
     id: string;
+    numero: number;
     titulo: string;
     orgao: string | null;
     uf: string | null;
@@ -72,14 +73,17 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
         ${isDragging ? "cursor-grabbing shadow-lg ring-2 ring-blue-300" : "hover:shadow-md"}
       `}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium leading-tight line-clamp-2">
-          {card.licitacao.titulo}
-        </h3>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+          #{card.licitacao.numero}
+        </span>
         {card.urgente && (
           <Badge variant="destructive" className="shrink-0 text-[10px]">Urgente</Badge>
         )}
       </div>
+      <h3 className="text-sm font-medium leading-tight line-clamp-2">
+        {card.licitacao.titulo}
+      </h3>
 
       {card.licitacao.orgao && (
         <p className="mt-1 text-xs text-slate-500 line-clamp-1">{card.licitacao.orgao}</p>
@@ -116,14 +120,12 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
 export function KanbanCardOverlay({ card }: { card: CardData }) {
   return (
     <div className="w-64 rounded-lg border-2 border-blue-400 bg-white p-3 shadow-xl rotate-2 scale-105">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium leading-tight line-clamp-2">
-          {card.licitacao.titulo}
-        </h3>
-        {card.urgente && (
-          <Badge variant="destructive" className="shrink-0 text-[10px]">Urgente</Badge>
-        )}
-      </div>
+      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+        #{card.licitacao.numero}
+      </span>
+      <h3 className="mt-1 text-sm font-medium leading-tight line-clamp-2">
+        {card.licitacao.titulo}
+      </h3>
 
       {card.licitacao.orgao && (
         <p className="mt-1 text-xs text-slate-500 line-clamp-1">{card.licitacao.orgao}</p>

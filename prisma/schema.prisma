@@ -64,6 +64,7 @@ model KanbanColuna {
 
 model Licitacao {
   id              String    @id @default(cuid())
+  numero          Int       @default(autoincrement()) @unique
   titulo          String
   orgao           String?
   objeto          String?   @db.Text

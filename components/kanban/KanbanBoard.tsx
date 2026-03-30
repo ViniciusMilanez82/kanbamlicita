@@ -34,6 +34,7 @@ interface CardData {
   id: string;
   licitacao: {
     id: string;
+    numero: number;
     titulo: string;
     orgao: string | null;
     uf: string | null;
@@ -187,6 +188,7 @@ export function KanbanBoard() {
           id: l.card!.id,
           licitacao: {
             id: l.id,
+            numero: l.numero,
             titulo: l.titulo,
             orgao: l.orgao,
             uf: l.uf,

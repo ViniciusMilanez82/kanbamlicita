@@ -289,17 +289,24 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
             </div>
           ) : licitacao ? (
             <div className="space-y-6">
-              {licitacao.card && (
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge
-                    style={{ backgroundColor: licitacao.card.coluna?.cor }}
-                    className="text-white"
-                  >
-                    {licitacao.card.coluna?.nome}
-                  </Badge>
-                  {licitacao.card.urgente && <Badge variant="destructive">Urgente</Badge>}
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {licitacao.numero && (
+                  <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">
+                    #{licitacao.numero}
+                  </span>
+                )}
+                {licitacao.card && (
+                  <>
+                    <Badge
+                      style={{ backgroundColor: licitacao.card.coluna?.cor }}
+                      className="text-white"
+                    >
+                      {licitacao.card.coluna?.nome}
+                    </Badge>
+                    {licitacao.card.urgente && <Badge variant="destructive">Urgente</Badge>}
+                  </>
+                )}
+              </div>
 
               {licitacao.linkOrigem && (() => {
                 // Converte linkOrigem legado (pncp-contrato:ID) em URL real

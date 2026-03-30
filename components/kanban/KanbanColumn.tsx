@@ -8,6 +8,7 @@ interface CardData {
   id: string;
   licitacao: {
     id: string;
+    numero: number;
     titulo: string;
     orgao: string | null;
     uf: string | null;
