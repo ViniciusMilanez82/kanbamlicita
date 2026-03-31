@@ -8,6 +8,7 @@ import { ColunasEditor } from "@/components/configuracoes/ColunasEditor";
 import { UsuariosTab } from "@/components/configuracoes/UsuariosTab";
 import { IaConfigForm } from "@/components/configuracoes/IaConfigForm";
 import { ParametrosTab } from "@/components/configuracoes/ParametrosTab";
+import { FontesTab } from "@/components/configuracoes/FontesTab";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
   { id: "colunas", label: "Colunas do Kanban" },
   { id: "usuarios", label: "Usuários" },
   { id: "parametros", label: "Parâmetros" },
+  { id: "fontes", label: "Fontes de Captação" },
 ];
 
 function ConfiguracoesContent() {
@@ -44,6 +46,7 @@ function ConfiguracoesContent() {
       {tab === "colunas" && <ColunasEditor />}
       {tab === "usuarios" && <UsuariosTab />}
       {tab === "parametros" && <ParametrosTab />}
+      {tab === "fontes" && <FontesTab />}
     </div>
   );
 }
