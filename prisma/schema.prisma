@@ -7,6 +7,49 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==================== ENUMS FASE 2 ====================
+
+enum CategoriaParametro {
+  segmento
+  categoria_produto
+  linha_servico
+  palavra_chave_positiva
+  palavra_chave_negativa
+  regra_modalidade
+  regra_orgao
+  regra_uf
+  criterio_descarte
+  criterio_urgencia
+  gatilho_risco
+}
+
+enum TipoCriterio {
+  objetivo
+  subjetivo
+}
+
+enum TipoRegra {
+  inclusao
+  exclusao
+  condicional
+}
+
+enum OperadorRegra {
+  igual
+  diferente
+  contem
+  nao_contem
+  maior
+  menor
+  regex
+}
+
+enum AcaoAuditoria {
+  criacao
+  edicao
+  exclusao
+}
+
 // ==================== EMPRESA ====================
 
 model Empresa {
@@ -18,12 +61,81 @@ model Empresa {
   pncpPreferencias Json?  @map("pncp_preferencias")
   /// Configurações da IA (provedor, chave, modelo).
   iaConfig    Json?    @map("ia_config")
+  /// Configuração do motor de score (faixas, thresholds, recomendações).
+  configuracaoScore Json? @map("configuracao_score")
   criadoEm    DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   produtos Produto[]
 
   @@map("empresa")
+}
+
+// ==================== PARÂMETROS ESTRATÉGICOS (FASE 2) ====================
+
+model ParametroEstrategico {
+  id         String              @id @default(cuid())
+  categoria  CategoriaParametro
+  chave      String
+  valor      String
+  peso       Float?
+  descricao  String?             @db.Text
+  ativo      Boolean             @default(true)
+  ordem      Int                 @default(0)
+  criadoEm   DateTime            @default(now()) @map("criado_em")
+  atualizadoEm DateTime          @updatedAt @map("atualizado_em")
+
+  @@unique([categoria, chave])
+  @@map("parametros_estrategicos")
+}
+
+model CriterioScore {
+  id          String        @id @default(cuid())
+  nome        String        @unique
+  descricao   String        @db.Text
+  tipo        TipoCriterio
+  peso        Float
+  formulaRef  String?       @map("formula_ref")
+  faixaMin    Float?        @map("faixa_min")
+  faixaMax    Float?        @map("faixa_max")
+  ativo       Boolean       @default(true)
+  ordem       Int           @default(0)
+  criadoEm    DateTime      @default(now()) @map("criado_em")
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em")
+
+  @@map("criterios_score")
+}
+
+model RegraAderencia {
+  id        String       @id @default(cuid())
+  nome      String
+  tipo      TipoRegra
+  campo     String
+  operador  OperadorRegra
+  valor     String
+  peso      Float?
+  ativo     Boolean      @default(true)
+  descricao String?      @db.Text
+  criadoEm  DateTime     @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+
+  @@map("regras_aderencia")
+}
+
+model AuditoriaParametro {
+  id              String         @id @default(cuid())
+  tabela          String
+  registroId      String         @map("registro_id")
+  campo           String
+  valorAnterior   String?        @map("valor_anterior") @db.Text
+  valorNovo       String?        @map("valor_novo") @db.Text
+  acao            AcaoAuditoria
+  alteradoPorId   String         @map("alterado_por_id")
+  criadoEm        DateTime       @default(now()) @map("criado_em")
+
+  alteradoPor User @relation(fields: [alteradoPorId], references: [id])
+
+  @@map("auditoria_parametros")
 }
 
 // ==================== CATÁLOGO ====================
@@ -160,6 +272,7 @@ model User {
   accounts    Account[]
   sessions    Session[]
   kanbanCards KanbanCard[]
+  auditorias  AuditoriaParametro[]
 
   @@map("usuarios")
 }
