@@ -50,6 +50,28 @@ enum AcaoAuditoria {
   exclusao
 }
 
+enum TipoFonte {
+  pncp
+  rss
+  scraping
+  api_generica
+}
+
+enum StatusExecucao {
+  executando
+  concluida
+  erro
+  cancelada
+}
+
+enum StatusItem {
+  criado
+  atualizado
+  duplicado
+  descartado
+  erro
+}
+
 // ==================== EMPRESA ====================
 
 model Empresa {
@@ -138,6 +160,65 @@ model AuditoriaParametro {
   @@map("auditoria_parametros")
 }
 
+// ==================== FONTES DE CAPTACAO (FASE 2 - SP-B) ====================
+
+model FonteCaptacao {
+  id                  String         @id @default(cuid())
+  nome                String
+  tipo                TipoFonte
+  ativo               Boolean        @default(true)
+  parametros          Json           @default("{}")
+  credenciais         Json?
+  filtros             Json?
+  periodicidade       String?
+  ultimaSincronizacao DateTime?      @map("ultima_sincronizacao")
+  criadoEm            DateTime       @default(now()) @map("criado_em")
+  atualizadoEm        DateTime       @updatedAt @map("atualizado_em")
+
+  execucoes  ExecucaoCaptacao[]
+  licitacoes Licitacao[]
+
+  @@map("fontes_captacao")
+}
+
+model ExecucaoCaptacao {
+  id               String         @id @default(cuid())
+  fonteId          String         @map("fonte_id")
+  status           StatusExecucao
+  iniciadaEm       DateTime       @default(now()) @map("iniciada_em")
+  finalizadaEm     DateTime?      @map("finalizada_em")
+  totalCaptados    Int            @default(0) @map("total_captados")
+  totalCriados     Int            @default(0) @map("total_criados")
+  totalAtualizados Int            @default(0) @map("total_atualizados")
+  totalDuplicados  Int            @default(0) @map("total_duplicados")
+  totalDescartados Int            @default(0) @map("total_descartados")
+  totalErros       Int            @default(0) @map("total_erros")
+  erro             String?        @db.Text
+  log              Json?
+  disparadoPor     String?        @map("disparado_por")
+
+  fonte FonteCaptacao    @relation(fields: [fonteId], references: [id])
+  itens ItemCaptado[]
+
+  @@map("execucoes_captacao")
+}
+
+model ItemCaptado {
+  id                    String     @id @default(cuid())
+  execucaoId            String     @map("execucao_id")
+  identificadorExterno  String     @map("identificador_externo")
+  dadosBrutos           Json       @map("dados_brutos")
+  status                StatusItem
+  licitacaoId           String?    @map("licitacao_id")
+  motivo                String?
+  criadoEm              DateTime   @default(now()) @map("criado_em")
+
+  execucao  ExecucaoCaptacao @relation(fields: [execucaoId], references: [id])
+  licitacao Licitacao?       @relation(fields: [licitacaoId], references: [id])
+
+  @@map("itens_captados")
+}
+
 // ==================== CATÁLOGO ====================
 
 model Produto {
@@ -191,10 +272,14 @@ model Licitacao {
   dadosExtraidos  Json?     @map("dados_extraidos")
   criadoEm        DateTime  @default(now()) @map("criado_em")
   atualizadoEm    DateTime  @updatedAt @map("atualizado_em")
+  fonteId         String?   @map("fonte_id")
+  identificadorExterno String? @unique @map("identificador_externo")
 
   card          KanbanCard?
   movimentacoes Movimentacao[]
   acoesIa       AcaoIa[]
+  fonte         FonteCaptacao? @relation(fields: [fonteId], references: [id])
+  itensCaptados ItemCaptado[]
 
   @@map("licitacoes")
 }

@@ -158,6 +158,27 @@ async function main() {
     await prisma.regraAderencia.create({ data: r });
   }
 
+  // ==================== FONTE PNCP (SP-B) ====================
+  await prisma.fonteCaptacao.upsert({
+    where: { id: "fonte-pncp-default" },
+    update: {},
+    create: {
+      id: "fonte-pncp-default",
+      nome: "PNCP - Contêineres e Equipamentos",
+      tipo: "pncp",
+      ativo: true,
+      filtros: {
+        palavrasChave: ["contêiner", "container", "equipamento portuário", "reach stacker", "empilhadeira"],
+        ufs: ["SP", "RJ", "SC", "RS", "PR", "ES"],
+      },
+      parametros: {
+        tamanhoPagina: 50,
+        paginasMaximas: 3,
+      },
+      periodicidade: "12h",
+    },
+  });
+
   console.log("Seed Fase 2 concluído!");
 }
 
