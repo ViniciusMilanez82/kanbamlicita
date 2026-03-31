@@ -7,6 +7,7 @@ import { EmpresaForm } from "@/components/configuracoes/EmpresaForm";
 import { ColunasEditor } from "@/components/configuracoes/ColunasEditor";
 import { UsuariosTab } from "@/components/configuracoes/UsuariosTab";
 import { IaConfigForm } from "@/components/configuracoes/IaConfigForm";
+import { ParametrosTab } from "@/components/configuracoes/ParametrosTab";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -14,6 +15,7 @@ const TABS = [
   { id: "ia", label: "Inteligência Artificial" },
   { id: "colunas", label: "Colunas do Kanban" },
   { id: "usuarios", label: "Usuários" },
+  { id: "parametros", label: "Parâmetros" },
 ];
 
 function ConfiguracoesContent() {
@@ -41,6 +43,7 @@ function ConfiguracoesContent() {
       {tab === "ia" && <IaConfigForm />}
       {tab === "colunas" && <ColunasEditor />}
       {tab === "usuarios" && <UsuariosTab />}
+      {tab === "parametros" && <ParametrosTab />}
     </div>
   );
 }
