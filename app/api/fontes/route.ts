@@ -30,9 +30,18 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { nome, tipo, parametros, filtros, periodicidade } = body;
 
+  const tiposValidos = ["pncp", "rss", "scraping", "api_generica"];
+
   if (!nome || !tipo) {
     return NextResponse.json(
       { error: "Nome e tipo são obrigatórios" },
+      { status: 400 }
+    );
+  }
+
+  if (!tiposValidos.includes(tipo)) {
+    return NextResponse.json(
+      { error: "Tipo inválido. Use: pncp, rss, scraping ou api_generica" },
       { status: 400 }
     );
   }

@@ -47,7 +47,11 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "destr
 export function ExecucoesHistorico({ fonteId }: { fonteId: string }) {
   const { data: execucoes, isLoading } = useQuery<Execucao[]>({
     queryKey: ["execucoes", fonteId],
-    queryFn: () => fetch(`/api/fontes/${fonteId}/execucoes`).then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/fontes/${fonteId}/execucoes`);
+      if (!r.ok) throw new Error("Erro ao carregar histórico");
+      return r.json();
+    },
     refetchInterval: 10000,
   });
 

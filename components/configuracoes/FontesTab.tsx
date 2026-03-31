@@ -64,7 +64,11 @@ export function FontesTab() {
 
   const { data: fontes, isLoading } = useQuery<Fonte[]>({
     queryKey: ["fontes"],
-    queryFn: () => fetch("/api/fontes").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/fontes");
+      if (!r.ok) throw new Error("Erro ao carregar fontes");
+      return r.json();
+    },
   });
 
   const executarMutation = useMutation({

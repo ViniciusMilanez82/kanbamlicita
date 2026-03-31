@@ -21,6 +21,16 @@ export async function PUT(
     return NextResponse.json({ error: "Fonte não encontrada" }, { status: 404 });
   }
 
+  if (tipo !== undefined) {
+    const tiposValidos = ["pncp", "rss", "scraping", "api_generica"];
+    if (!tiposValidos.includes(tipo)) {
+      return NextResponse.json(
+        { error: "Tipo inválido. Use: pncp, rss, scraping ou api_generica" },
+        { status: 400 }
+      );
+    }
+  }
+
   const dados: Record<string, unknown> = {};
   if (nome !== undefined) dados.nome = nome;
   if (tipo !== undefined) dados.tipo = tipo;
