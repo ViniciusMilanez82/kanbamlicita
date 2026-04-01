@@ -32,6 +32,7 @@ type Fonte = {
 
 const TIPO_LABELS: Record<string, string> = {
   pncp: "PNCP",
+  petronect: "Petronect",
   rss: "RSS",
   scraping: "Scraping",
   api_generica: "API Genérica",
@@ -39,6 +40,7 @@ const TIPO_LABELS: Record<string, string> = {
 
 const TIPO_CORES: Record<string, string> = {
   pncp: "bg-blue-100 text-blue-800",
+  petronect: "bg-teal-100 text-teal-800",
   rss: "bg-orange-100 text-orange-800",
   scraping: "bg-purple-100 text-purple-800",
   api_generica: "bg-green-100 text-green-800",

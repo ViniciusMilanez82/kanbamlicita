@@ -47,6 +47,8 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
   const [tamanhoPagina, setTamanhoPagina] = useState("50");
   const [paginasMaximas, setPaginasMaximas] = useState("3");
   const [url, setUrl] = useState("");
+  const [petronectUsuario, setPetronectUsuario] = useState("");
+  const [petronectSenha, setPetronectSenha] = useState("");
 
   useEffect(() => {
     if (open && fonte) {
@@ -60,6 +62,8 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
       setTamanhoPagina(String(params.tamanhoPagina ?? "50"));
       setPaginasMaximas(String(params.paginasMaximas ?? "3"));
       setUrl(String(params.url ?? ""));
+      setPetronectUsuario(String(params.username ?? ""));
+      setPetronectSenha(String(params.password ?? ""));
     } else if (open && !fonte) {
       setNome("");
       setTipo("pncp");
@@ -69,6 +73,8 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
       setTamanhoPagina("50");
       setPaginasMaximas("3");
       setUrl("");
+      setPetronectUsuario("");
+      setPetronectSenha("");
     }
   }, [open, fonte]);
 
@@ -119,6 +125,18 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
         tamanhoPagina: Math.min(50, Math.max(5, Number(tamanhoPagina) || 50)),
         paginasMaximas: Math.min(10, Math.max(1, Number(paginasMaximas) || 3)),
       };
+    } else if (tipo === "petronect") {
+      if (!petronectUsuario.trim() || !petronectSenha.trim()) {
+        toast.error("Informe o usuário e a senha do Petronect");
+        return;
+      }
+      data.filtros = {
+        palavrasChave: palavrasChave.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean),
+      };
+      data.parametros = {
+        username: petronectUsuario.trim(),
+        password: petronectSenha.trim(),
+      };
     } else {
       data.parametros = { url: url.trim() };
       data.filtros = null;
@@ -147,6 +165,7 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pncp">PNCP</SelectItem>
+                <SelectItem value="petronect">Petronect</SelectItem>
                 <SelectItem value="rss">RSS</SelectItem>
                 <SelectItem value="scraping">Scraping</SelectItem>
                 <SelectItem value="api_generica">API Genérica</SelectItem>
@@ -182,7 +201,29 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
             </>
           )}
 
-          {tipo !== "pncp" && (
+          {tipo === "petronect" && (
+            <>
+              <div>
+                <label className="text-sm font-medium">Usuário (e-mail)</label>
+                <Input value={petronectUsuario} onChange={(e) => setPetronectUsuario(e.target.value)} placeholder="seu@email.com" type="email" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Senha</label>
+                <Input value={petronectSenha} onChange={(e) => setPetronectSenha(e.target.value)} placeholder="Senha do Petronect" type="password" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Palavras-chave (separadas por vírgula)</label>
+                <Textarea
+                  value={palavrasChave}
+                  onChange={(e) => setPalavrasChave(e.target.value)}
+                  placeholder="contêiner, container, equipamento portuário"
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
+
+          {tipo !== "pncp" && tipo !== "petronect" && (
             <div>
               <label className="text-sm font-medium">URL da fonte</label>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/feed.xml" type="url" />

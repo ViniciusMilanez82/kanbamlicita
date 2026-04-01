@@ -22,10 +22,10 @@ export async function PUT(
   }
 
   if (tipo !== undefined) {
-    const tiposValidos = ["pncp", "rss", "scraping", "api_generica"];
+    const tiposValidos = ["pncp", "petronect", "rss", "scraping", "api_generica"];
     if (!tiposValidos.includes(tipo)) {
       return NextResponse.json(
-        { error: "Tipo inválido. Use: pncp, rss, scraping ou api_generica" },
+        { error: "Tipo inválido. Use: pncp, petronect, rss, scraping ou api_generica" },
         { status: 400 }
       );
     }

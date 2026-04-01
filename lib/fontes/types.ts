@@ -28,6 +28,8 @@ export type ParametrosFonte = {
   tamanhoPagina?: number;
   paginasMaximas?: number;
   url?: string;
+  username?: string;
+  password?: string;
   seletores?: {
     lista?: string;
     titulo?: string;
