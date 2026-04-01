@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Calculator, Loader2 } from "lucide-react";
+import { ListaEditavel } from "./ListaEditavel";
 
 const COR_CLASSIFICACAO: Record<string, string> = {
   "A+": "bg-emerald-700 text-white",
@@ -25,12 +26,12 @@ const COR_CLASSIFICACAO: Record<string, string> = {
 };
 
 const COMPONENTES = [
-  { key: "scoreAderenciaDireta", label: "Aderencia direta", peso: "15%" },
-  { key: "scoreAderenciaAplicacao", label: "Aderencia aplicacao", peso: "25%" },
+  { key: "scoreAderenciaDireta", label: "Aderência direta", peso: "15%" },
+  { key: "scoreAderenciaAplicacao", label: "Aderência aplicação", peso: "25%" },
   { key: "scoreContextoOculto", label: "Contexto oculto", peso: "20%" },
   { key: "scoreModeloComercial", label: "Modelo comercial", peso: "15%" },
-  { key: "scorePotencialEconomico", label: "Potencial economico", peso: "15%" },
-  { key: "scoreQualidadeEvidencia", label: "Qualidade evidencia", peso: "10%" },
+  { key: "scorePotencialEconomico", label: "Potencial econômico", peso: "15%" },
+  { key: "scoreQualidadeEvidencia", label: "Qualidade evidência", peso: "10%" },
 ];
 
 export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
@@ -64,10 +65,13 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
     valorCapturavelMetodoEstimativa: "",
     valorCapturavelJustificativa: "",
     valorCapturavelObservacao: "",
+    valorCapturavelBaseDocumental: [] as string[],
     // Falso negativo
     falsoNegativoExisteRisco: false,
     falsoNegativoNivelRisco: "",
     falsoNegativoResumo: "",
+    falsoNegativoMotivos: [] as string[],
+    falsoNegativoTrechosCriticos: [] as string[],
   });
 
   useEffect(() => {
@@ -90,9 +94,12 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
         valorCapturavelMetodoEstimativa: (scoreData.valorCapturavelMetodoEstimativa as string) ?? "",
         valorCapturavelJustificativa: (scoreData.valorCapturavelJustificativa as string) ?? "",
         valorCapturavelObservacao: (scoreData.valorCapturavelObservacao as string) ?? "",
+        valorCapturavelBaseDocumental: Array.isArray(scoreData.valorCapturavelBaseDocumental) ? scoreData.valorCapturavelBaseDocumental as string[] : [],
         falsoNegativoExisteRisco: (scoreData.falsoNegativoExisteRisco as boolean) ?? false,
         falsoNegativoNivelRisco: (scoreData.falsoNegativoNivelRisco as string) ?? "",
         falsoNegativoResumo: (scoreData.falsoNegativoResumo as string) ?? "",
+        falsoNegativoMotivos: Array.isArray(scoreData.falsoNegativoMotivos) ? scoreData.falsoNegativoMotivos as string[] : [],
+        falsoNegativoTrechosCriticos: Array.isArray(scoreData.falsoNegativoTrechosCriticos) ? scoreData.falsoNegativoTrechosCriticos as string[] : [],
       });
     }
   }, [scoreData]);
@@ -114,7 +121,7 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
         ...resultado.componentes,
         scoreJustificativaResumida: resultado.justificativaResumida,
       }));
-      toast.success("Score calculado! Ajuste os valores se necessario.");
+      toast.success("Score calculado! Ajuste os valores se necessário.");
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -133,8 +140,11 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
           valorCapturavelMetodoEstimativa: form.valorCapturavelMetodoEstimativa || null,
           valorCapturavelJustificativa: form.valorCapturavelJustificativa || null,
           valorCapturavelObservacao: form.valorCapturavelObservacao || null,
+          valorCapturavelBaseDocumental: form.valorCapturavelBaseDocumental.length > 0 ? form.valorCapturavelBaseDocumental : null,
           falsoNegativoNivelRisco: form.falsoNegativoNivelRisco || null,
           falsoNegativoResumo: form.falsoNegativoResumo || null,
+          falsoNegativoMotivos: form.falsoNegativoMotivos.length > 0 ? form.falsoNegativoMotivos : null,
+          falsoNegativoTrechosCriticos: form.falsoNegativoTrechosCriticos.length > 0 ? form.falsoNegativoTrechosCriticos : null,
         }),
       });
       if (!r.ok) throw new Error("Erro ao salvar");
@@ -205,7 +215,7 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
       </div>
 
       <div className="border rounded-lg p-4 space-y-4">
-        <h4 className="font-medium">Valor capturavel</h4>
+        <h4 className="font-medium">Valor capturável</h4>
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="text-sm text-slate-600">Estimado (R$)</label>
@@ -222,24 +232,29 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm text-slate-600">Nivel de confianca</label>
+            <label className="text-sm text-slate-600">Nível de confiança</label>
             <Select value={form.valorCapturavelNivelConfianca || ""} onValueChange={(v) => setForm({ ...form, valorCapturavelNivelConfianca: v ?? "" })}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="alto">Alto</SelectItem>
-                <SelectItem value="medio">Medio</SelectItem>
+                <SelectItem value="medio">Médio</SelectItem>
                 <SelectItem value="baixo">Baixo</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="text-sm text-slate-600">Metodo de estimativa</label>
+            <label className="text-sm text-slate-600">Método de estimativa</label>
             <Input value={form.valorCapturavelMetodoEstimativa} onChange={(e) => setForm({ ...form, valorCapturavelMetodoEstimativa: e.target.value })} />
           </div>
         </div>
         <div>
           <label className="text-sm text-slate-600">Justificativa</label>
           <Textarea value={form.valorCapturavelJustificativa} onChange={(e) => setForm({ ...form, valorCapturavelJustificativa: e.target.value })} rows={2} />
+        </div>
+        <ListaEditavel label="Referências documentais" items={form.valorCapturavelBaseDocumental} onChange={(v) => setForm({ ...form, valorCapturavelBaseDocumental: v })} placeholder="Ex: Edital pág. 15, Item 3.2..." />
+        <div>
+          <label className="text-sm text-slate-600">Observação</label>
+          <Textarea value={form.valorCapturavelObservacao} onChange={(e) => setForm({ ...form, valorCapturavelObservacao: e.target.value })} rows={2} />
         </div>
       </div>
 
@@ -252,10 +267,10 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
         {form.falsoNegativoExisteRisco && (
           <>
             <Select value={form.falsoNegativoNivelRisco || ""} onValueChange={(v) => setForm({ ...form, falsoNegativoNivelRisco: v ?? "" })}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Nivel" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder="Nível" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="alto">Alto</SelectItem>
-                <SelectItem value="medio">Medio</SelectItem>
+                <SelectItem value="medio">Médio</SelectItem>
                 <SelectItem value="baixo">Baixo</SelectItem>
               </SelectContent>
             </Select>
@@ -263,6 +278,8 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
               <label className="text-sm text-slate-600">Resumo</label>
               <Textarea value={form.falsoNegativoResumo} onChange={(e) => setForm({ ...form, falsoNegativoResumo: e.target.value })} rows={3} />
             </div>
+            <ListaEditavel label="Motivos" items={form.falsoNegativoMotivos} onChange={(v) => setForm({ ...form, falsoNegativoMotivos: v })} placeholder="Ex: Título genérico não menciona equipamentos..." />
+            <ListaEditavel label="Trechos críticos" items={form.falsoNegativoTrechosCriticos} onChange={(v) => setForm({ ...form, falsoNegativoTrechosCriticos: v })} placeholder="Ex: Item 5.3 do TR menciona..." />
           </>
         )}
       </div>

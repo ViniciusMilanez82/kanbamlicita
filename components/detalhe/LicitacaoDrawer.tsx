@@ -67,9 +67,9 @@ function ResumoScoreParecer({ licitacaoId }: { licitacaoId: string }) {
       )}
       {parecer && (
         <div className="text-xs text-slate-600">
-          {parecer.prioridadeComercial && <span>Prioridade: {String(parecer.prioridadeComercial)}</span>}
+          {!!parecer.prioridadeComercial && <span>Prioridade: {String(parecer.prioridadeComercial)}</span>}
           {parecer.valeEsforcoComercial != null && (
-            <span className="ml-2">Vale esforco: {parecer.valeEsforcoComercial ? "Sim" : "Nao"}</span>
+            <span className="ml-2">Vale esforço: {parecer.valeEsforcoComercial ? "Sim" : "Não"}</span>
           )}
         </div>
       )}
@@ -77,7 +77,7 @@ function ResumoScoreParecer({ licitacaoId }: { licitacaoId: string }) {
         href={`/licitacoes/${licitacaoId}`}
         className="text-xs text-blue-600 hover:underline"
       >
-        {hasData ? "Ver analise completa →" : "Analisar →"}
+        {hasData ? "Ver análise completa →" : "Analisar →"}
       </a>
     </div>
   );

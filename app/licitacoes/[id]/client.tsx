@@ -25,7 +25,7 @@ type LicitacaoData = {
 };
 
 const TABS = [
-  { id: "analise", label: "Analise" },
+  { id: "analise", label: "Análise" },
   { id: "score", label: "Score" },
   { id: "parecer", label: "Parecer" },
 ];

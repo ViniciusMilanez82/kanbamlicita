@@ -120,7 +120,7 @@ export function ParecerTab({
 
   const RISCOS = [
     { key: "riscoFalsoPositivo" as const, label: "Risco de falso positivo" },
-    { key: "riscoFalsoNegativoSoTitulo" as const, label: "Risco de falso negativo (analise so pelo titulo)" },
+    { key: "riscoFalsoNegativoSoTitulo" as const, label: "Risco de falso negativo (análise só pelo título)" },
   ];
 
   return (
@@ -129,7 +129,7 @@ export function ParecerTab({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="text-sm font-medium">Classificacao final</label>
+          <label className="text-sm font-medium">Classificação final</label>
           <Select value={form.classificacaoFinal || ""} onValueChange={(v) => setForm({ ...form, classificacaoFinal: v ?? "" })}>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
@@ -147,7 +147,7 @@ export function ParecerTab({
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="media">Media</SelectItem>
+              <SelectItem value="media">Média</SelectItem>
               <SelectItem value="baixa">Baixa</SelectItem>
             </SelectContent>
           </Select>
@@ -160,7 +160,7 @@ export function ParecerTab({
               onChange={(e) => setForm({ ...form, valeEsforcoComercial: e.target.checked })}
               className="rounded"
             />
-            Vale esforco comercial?
+            Vale esforço comercial?
           </label>
         </div>
       </div>
@@ -196,20 +196,20 @@ export function ParecerTab({
         </div>
       </div>
 
-      <ListaEditavel label="Onde esta a oportunidade?" items={form.ondeEstaOportunidade} onChange={(v) => setForm({ ...form, ondeEstaOportunidade: v })} placeholder="Ex: Item 3 do lote 2..." />
-      <ListaEditavel label="Solucoes que a Multiteiner poderia ofertar" items={form.solucoesQueMultiteinerPoderiaOfertar} onChange={(v) => setForm({ ...form, solucoesQueMultiteinerPoderiaOfertar: v })} placeholder="Ex: Container reefer 40'..." />
-      <ListaEditavel label="Proximos passos recomendados" items={form.proximoPasosRecomendado} onChange={(v) => setForm({ ...form, proximoPasosRecomendado: v })} placeholder="Ex: Solicitar edital completo..." />
-      <ListaEditavel label="Riscos e limitacoes" items={form.riscosLimitacoes} onChange={(v) => setForm({ ...form, riscosLimitacoes: v })} placeholder="Ex: Prazo curto para proposta..." />
-      <ListaEditavel label="Evidencias principais" items={form.evidenciasPrincipais} onChange={(v) => setForm({ ...form, evidenciasPrincipais: v })} placeholder="Ex: Mencao a container no item 5..." />
+      <ListaEditavel label="Onde está a oportunidade?" items={form.ondeEstaOportunidade} onChange={(v) => setForm({ ...form, ondeEstaOportunidade: v })} placeholder="Ex: Item 3 do lote 2..." />
+      <ListaEditavel label="Soluções que a Multiteiner poderia ofertar" items={form.solucoesQueMultiteinerPoderiaOfertar} onChange={(v) => setForm({ ...form, solucoesQueMultiteinerPoderiaOfertar: v })} placeholder="Ex: Container reefer 40'..." />
+      <ListaEditavel label="Próximos passos recomendados" items={form.proximoPasosRecomendado} onChange={(v) => setForm({ ...form, proximoPasosRecomendado: v })} placeholder="Ex: Solicitar edital completo..." />
+      <ListaEditavel label="Riscos e limitações" items={form.riscosLimitacoes} onChange={(v) => setForm({ ...form, riscosLimitacoes: v })} placeholder="Ex: Prazo curto para proposta..." />
+      <ListaEditavel label="Evidências principais" items={form.evidenciasPrincipais} onChange={(v) => setForm({ ...form, evidenciasPrincipais: v })} placeholder="Ex: Menção a container no item 5..." />
 
       <div>
-        <label className="text-sm font-medium">Recomendacao final</label>
-        <Textarea value={form.recomendacaoFinal} onChange={(e) => setForm({ ...form, recomendacaoFinal: e.target.value })} rows={3} placeholder="Recomendacao detalhada..." />
+        <label className="text-sm font-medium">Recomendação final</label>
+        <Textarea value={form.recomendacaoFinal} onChange={(e) => setForm({ ...form, recomendacaoFinal: e.target.value })} rows={3} placeholder="Recomendação detalhada..." />
       </div>
 
       <div>
         <label className="text-sm font-medium">Resumo executivo</label>
-        <Textarea value={form.resumo} onChange={(e) => setForm({ ...form, resumo: e.target.value })} rows={3} placeholder="Resumo para leitura rapida..." />
+        <Textarea value={form.resumo} onChange={(e) => setForm({ ...form, resumo: e.target.value })} rows={3} placeholder="Resumo para leitura rápida..." />
       </div>
 
       <Button onClick={() => salvarMutation.mutate()} disabled={salvarMutation.isPending}>

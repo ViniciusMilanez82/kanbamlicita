@@ -74,7 +74,7 @@ export function LicitacaoSidebar({
       <dl className="space-y-3 text-sm">
         {licitacao.orgao && (
           <div>
-            <dt className="text-slate-500">Orgao</dt>
+            <dt className="text-slate-500">Órgão</dt>
             <dd className="font-medium">{licitacao.orgao}</dd>
           </div>
         )}
@@ -93,7 +93,7 @@ export function LicitacaoSidebar({
           )}
           {licitacao.municipio && (
             <div>
-              <dt className="text-slate-500">Municipio</dt>
+              <dt className="text-slate-500">Município</dt>
               <dd>{licitacao.municipio}</dd>
             </div>
           )}
@@ -104,11 +104,11 @@ export function LicitacaoSidebar({
         </div>
         <div className="flex gap-6">
           <div>
-            <dt className="text-slate-500">Publicacao</dt>
+            <dt className="text-slate-500">Publicação</dt>
             <dd>{formatarData(licitacao.dataPublicacao)}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Sessao</dt>
+            <dt className="text-slate-500">Sessão</dt>
             <dd>{formatarData(licitacao.dataSessao)}</dd>
           </div>
         </div>

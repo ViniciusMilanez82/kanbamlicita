@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { getIaProvider } from "@/lib/ia/factory";
 import type { AnaliseIaResultado } from "./types";
 
@@ -69,7 +70,7 @@ export async function analisarComIa(licitacaoId: string): Promise<void> {
   // Criar/atualizar registro como "processando"
   await db.licitacaoAnaliseIa.upsert({
     where: { licitacaoId },
-    update: { status: "processando", erro: null, resultadoJson: null },
+    update: { status: "processando", erro: null, resultadoJson: Prisma.JsonNull },
     create: { licitacaoId, status: "processando" },
   });
 
@@ -103,7 +104,7 @@ export async function analisarComIa(licitacaoId: string): Promise<void> {
       where: { licitacaoId },
       data: {
         status: "concluido",
-        resultadoJson: resultado as unknown as Record<string, unknown>,
+        resultadoJson: resultado as Prisma.InputJsonValue,
         modelo: ia.modelName,
       },
     });

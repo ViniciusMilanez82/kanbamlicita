@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,7 @@ type AnaliseResponse = {
 
 const NIVEIS = [
   { value: "alta", label: "Alta" },
-  { value: "media", label: "Media" },
+  { value: "media", label: "Média" },
   { value: "baixa", label: "Baixa" },
   { value: "nenhuma", label: "Nenhuma" },
 ];
@@ -58,9 +58,9 @@ function BlocoAnalise({
         Existe?
       </label>
       {existeValue && (
-        <Select value={nivelValue || ""} onValueChange={onNivelChange}>
+        <Select value={nivelValue || ""} onValueChange={(v) => onNivelChange(v ?? "")}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Nivel" />
+            <SelectValue placeholder="Nível" />
           </SelectTrigger>
           <SelectContent>
             {NIVEIS.map((n) => (
@@ -75,12 +75,19 @@ function BlocoAnalise({
 
 export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
   const queryClient = useQueryClient();
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
 
   const { data, isLoading } = useQuery<AnaliseResponse>({
     queryKey: ["analise", licitacaoId],
     queryFn: async () => {
       const r = await fetch(`/api/licitacoes/${licitacaoId}/analise`);
-      if (!r.ok) throw new Error("Erro ao carregar analise");
+      if (!r.ok) throw new Error("Erro ao carregar análise");
       return r.json();
     },
   });
@@ -141,10 +148,10 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
       return r.json();
     },
     onSuccess: () => {
-      toast.success("Analise salva!");
+      toast.success("Análise salva!");
       queryClient.invalidateQueries({ queryKey: ["analise", licitacaoId] });
     },
-    onError: () => toast.error("Erro ao salvar analise"),
+    onError: () => toast.error("Erro ao salvar análise"),
   });
 
   const iaMutation = useMutation({
@@ -152,18 +159,18 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
       const r = await fetch(`/api/licitacoes/${licitacaoId}/analise/ia`, { method: "POST" });
       if (!r.ok) {
         const body = await r.json();
-        throw new Error(body.error ?? "Erro ao iniciar analise IA");
+        throw new Error(body.error ?? "Erro ao iniciar análise IA");
       }
       return r.json();
     },
     onSuccess: () => {
-      toast.success("Analise IA iniciada! Aguarde...");
+      toast.success("Análise IA iniciada! Aguarde...");
       // Poll every 3s until done
-      const interval = setInterval(async () => {
+      pollingRef.current = setInterval(async () => {
         const r = await fetch(`/api/licitacoes/${licitacaoId}/analise`);
         const d = await r.json() as AnaliseResponse;
         if (d.analiseIa?.status === "concluido" && d.analiseIa.resultadoJson) {
-          clearInterval(interval);
+          if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
           const ia = d.analiseIa.resultadoJson as Record<string, unknown>;
           const newIaFields = new Set<string>();
           const updated = { ...form };
@@ -195,10 +202,10 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
           setForm(updated);
           setIaFields(newIaFields);
           queryClient.invalidateQueries({ queryKey: ["analise", licitacaoId] });
-          toast.success("Analise IA concluida! Campos preenchidos.");
+          toast.success("Análise IA concluída! Campos preenchidos.");
         } else if (d.analiseIa?.status === "erro") {
-          clearInterval(interval);
-          toast.error("Analise IA falhou. Tente novamente.");
+          if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+          toast.error("Análise IA falhou. Tente novamente.");
         }
       }, 3000);
     },
@@ -211,18 +218,18 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
 
   const FLAGS = [
     { key: "oportunidadeNoObjeto" as const, label: "No objeto" },
-    { key: "oportunidadeNoTr" as const, label: "No termo de referencia" },
+    { key: "oportunidadeNoTr" as const, label: "No termo de referência" },
     { key: "oportunidadeNosLotes" as const, label: "Nos lotes" },
     { key: "oportunidadeNosItens" as const, label: "Nos itens" },
     { key: "oportunidadeNaPlanilha" as const, label: "Na planilha" },
     { key: "oportunidadeNoMemorial" as const, label: "No memorial" },
-    { key: "oportunidadeEmAnexoTecnico" as const, label: "Em anexo tecnico" },
+    { key: "oportunidadeEmAnexoTecnico" as const, label: "Em anexo técnico" },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Analise qualitativa</h3>
+        <h3 className="text-lg font-semibold">Análise qualitativa</h3>
         <Button
           variant="outline"
           size="sm"
@@ -240,7 +247,7 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <BlocoAnalise
-          titulo="Aderencia direta"
+          titulo="Aderência direta"
           existeValue={form.aderenciaDiretaExiste}
           onExisteChange={(v) => setForm({ ...form, aderenciaDiretaExiste: v })}
           nivelValue={form.aderenciaDiretaNivel}
@@ -248,7 +255,7 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
           iaPreenchido={iaFields.has("aderenciaDiretaExiste")}
         />
         <BlocoAnalise
-          titulo="Aderencia por aplicacao"
+          titulo="Aderência por aplicação"
           existeValue={form.aderenciaAplicacaoExiste}
           onExisteChange={(v) => setForm({ ...form, aderenciaAplicacaoExiste: v })}
           nivelValue={form.aderenciaAplicacaoNivel}
@@ -283,11 +290,11 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
           <>
             <Select value={form.oportunidadeOcultaForca || ""} onValueChange={(v) => setForm({ ...form, oportunidadeOcultaForca: v ?? "" })}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Forca" />
+                <SelectValue placeholder="Força" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="alta">Alta</SelectItem>
-                <SelectItem value="media">Media</SelectItem>
+                <SelectItem value="media">Média</SelectItem>
                 <SelectItem value="baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
@@ -320,7 +327,7 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
       </div>
 
       <Button onClick={() => salvarMutation.mutate()} disabled={salvarMutation.isPending}>
-        {salvarMutation.isPending ? "Salvando..." : "Salvar analise"}
+        {salvarMutation.isPending ? "Salvando..." : "Salvar análise"}
       </Button>
     </div>
   );
