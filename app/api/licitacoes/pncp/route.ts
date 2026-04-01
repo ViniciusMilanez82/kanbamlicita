@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import type { PncpContratoRaw } from "@/lib/pncp/types";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
+import { avaliarEPersistir } from "@/lib/aderencia/pipeline-hook";
 
 function idPncp(c: PncpContratoRaw): string {
   const id = c.numeroControlePNCP || c.numeroControlePncpCompra;
@@ -84,6 +85,9 @@ export async function POST(req: Request) {
       card: { include: { coluna: true } },
     },
   });
+
+  // Avaliar aderencia automatica
+  avaliarEPersistir(licitacao.id).catch(() => {});
 
   return NextResponse.json(licitacao, { status: 201 });
 }

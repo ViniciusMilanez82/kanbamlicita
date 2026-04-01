@@ -275,6 +275,9 @@ model Licitacao {
   atualizadoEm    DateTime  @updatedAt @map("atualizado_em")
   fonteId         String?   @map("fonte_id")
   identificadorExterno String? @unique @map("identificador_externo")
+  aderenciaAutomatica  Json?   @map("aderencia_automatica")
+  scorePreliminar      Float?  @map("score_preliminar")
+  classificacaoPreliminar String? @map("classificacao_preliminar")
 
   card          KanbanCard?
   movimentacoes Movimentacao[]

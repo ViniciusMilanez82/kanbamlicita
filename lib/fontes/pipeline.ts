@@ -3,6 +3,7 @@ import type { InputJsonValue } from "@prisma/client/runtime/client";
 import { criarConector } from "./factory";
 import type { FonteConfig, ResultadoConector } from "./types";
 import type { FiltrosFonte, ParametrosFonte } from "./types";
+import { avaliarEPersistir } from "@/lib/aderencia/pipeline-hook";
 
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos
 
@@ -184,6 +185,9 @@ async function processarItem(
     });
 
     contadores.totalCriados++;
+
+    // Avaliar aderencia automatica
+    avaliarEPersistir(licitacao.id).catch(() => {});
     return;
   }
 
@@ -231,6 +235,9 @@ async function processarItem(
     });
 
     contadores.totalAtualizados++;
+
+    // Re-avaliar aderencia apos atualizacao
+    avaliarEPersistir(existente.id).catch(() => {});
     return;
   }
 

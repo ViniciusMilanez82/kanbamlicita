@@ -42,6 +42,8 @@ interface CardData {
     dataSessao: string | null;
     dataPublicacao: string | null;
     modalidade: string | null;
+    scorePreliminar: number | null;
+    classificacaoPreliminar: string | null;
   };
   urgente: boolean;
   responsavel: { name: string | null } | null;
@@ -196,6 +198,8 @@ export function KanbanBoard() {
             dataSessao: l.dataSessao,
             dataPublicacao: l.dataPublicacao,
             modalidade: l.modalidade,
+            scorePreliminar: l.scorePreliminar ?? null,
+            classificacaoPreliminar: l.classificacaoPreliminar ?? null,
           },
           urgente: l.card!.urgente,
           responsavel: l.card!.responsavel,
