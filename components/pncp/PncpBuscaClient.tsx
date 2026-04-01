@@ -13,11 +13,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  FileText,
   Filter,
   HelpCircle,
   Info,
   Loader2,
+  Receipt,
   Save,
+  ScrollText,
   Search,
   X,
 } from "lucide-react";
@@ -49,6 +52,40 @@ function tamanhoLoteValido(n: number): string {
   const r = Math.round(n / 10) * 10;
   return String(Math.min(50, Math.max(10, r)));
 }
+
+/* ------------------------------------------------------------------ */
+/*  Config dos tipos de documento                                      */
+/* ------------------------------------------------------------------ */
+
+const TIPOS_DOC = [
+  { id: "contrato", label: "Contratos", icon: FileText, cor: "blue" },
+  { id: "empenho", label: "Empenhos", icon: Receipt, cor: "amber" },
+  { id: "ata", label: "Atas", icon: ScrollText, cor: "emerald" },
+] as const;
+
+const COR_CLASSES: Record<string, { bg: string; border: string; text: string; badge: string; header: string }> = {
+  blue: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-800", header: "bg-blue-600" },
+  amber: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-800", header: "bg-amber-600" },
+  emerald: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-800", header: "bg-emerald-600" },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Tipos                                                              */
+/* ------------------------------------------------------------------ */
+
+type TipoResultado = {
+  tipo: string;
+  itens: PncpContratoListaItem[];
+  totalRegistros: number;
+  totalPaginas: number;
+};
+
+type ResultadoAgrupado = {
+  porTipo: Record<string, TipoResultado>;
+  totalGeral: number;
+  numeroPagina: number;
+  filtrosUsados: { ufs: string[]; palavrasChave: string[] };
+};
 
 /* ------------------------------------------------------------------ */
 /*  Dica contextual                                                    */
@@ -109,17 +146,151 @@ function PassoHeader({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tipo do resultado                                                  */
+/*  Coluna de resultados por tipo                                      */
 /* ------------------------------------------------------------------ */
 
-type Resultado = {
-  itens: PncpContratoListaItem[];
-  totalRegistros: number;
-  totalPaginas: number;
-  numeroPagina: number;
-  totalFiltrados: number;
-  filtrosUsados: { ufs: string[]; palavrasChave: string[] };
-};
+function ColunaResultado({
+  config,
+  dados,
+  pagina,
+  isPending,
+  onPaginaChange,
+  onImportar,
+  importandoId,
+}: {
+  config: (typeof TIPOS_DOC)[number];
+  dados: TipoResultado | undefined;
+  pagina: number;
+  isPending: boolean;
+  onPaginaChange: (tipo: string, pag: number) => void;
+  onImportar: (item: { raw: object; urlPncp?: string | null }) => void;
+  importandoId: string | null;
+}) {
+  const Icon = config.icon;
+  const cores = COR_CLASSES[config.cor];
+  const itens = dados?.itens ?? [];
+  const total = dados?.totalRegistros ?? 0;
+  const totalPaginas = dados?.totalPaginas ?? 1;
+
+  return (
+    <div className={`flex flex-col rounded-xl border ${cores.border} overflow-hidden`}>
+      {/* Header da coluna */}
+      <div className={`${cores.header} px-4 py-3 flex items-center justify-between`}>
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-white" />
+          <span className="text-sm font-semibold text-white">{config.label}</span>
+        </div>
+        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
+          {fmtNum(total)}
+        </span>
+      </div>
+
+      {/* Itens */}
+      <div className={`flex-1 ${cores.bg} p-2 space-y-2 overflow-y-auto`} style={{ maxHeight: "calc(100vh - 400px)" }}>
+        {isPending && itens.length === 0 && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+        )}
+
+        {!isPending && itens.length === 0 && (
+          <div className="py-8 text-center">
+            <Info className="mx-auto h-6 w-6 text-slate-300" />
+            <p className="mt-2 text-xs text-slate-400">Nenhum resultado</p>
+          </div>
+        )}
+
+        {itens.map((row) => (
+          <div
+            key={row.id}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <p className="text-sm font-medium text-slate-900 leading-snug line-clamp-2">
+              {row.titulo}
+            </p>
+            {row.orgao && (
+              <p className="mt-1 text-xs text-slate-500 line-clamp-1">{row.orgao}</p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+              {row.uf && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                  {row.uf}
+                </span>
+              )}
+              {row.municipio && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+                  {row.municipio}
+                </span>
+              )}
+              {row.valorGlobal != null && (
+                <span className="rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
+                  R$ {row.valorGlobal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+              {row.dataPublicacao && (
+                <span className="text-slate-400">
+                  {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
+                </span>
+              )}
+              {row.urlPncp && (
+                <a
+                  href={row.urlPncp}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
+                >
+                  Ver <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+              )}
+            </div>
+            <Button
+              size="sm"
+              className="mt-2 w-full gap-1.5 text-xs h-7"
+              disabled={importandoId === row.id}
+              onClick={() => onImportar({ raw: row.raw, urlPncp: row.urlPncp })}
+            >
+              {importandoId === row.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3 w-3" />
+              )}
+              Adicionar
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      {/* Paginação */}
+      {total > 0 && totalPaginas > 1 && (
+        <div className="flex items-center justify-between border-t px-3 py-2 bg-white">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={isPending || pagina <= 1}
+            onClick={() => onPaginaChange(config.id, pagina - 1)}
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <span className="text-[10px] text-slate-400">
+            {pagina}/{totalPaginas}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={isPending || pagina >= totalPaginas}
+            onClick={() => onPaginaChange(config.id, pagina + 1)}
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Componente principal                                               */
@@ -128,7 +299,6 @@ type Resultado = {
 export function PncpBuscaClient() {
   const queryClient = useQueryClient();
 
-  /* ---------- dados da empresa (preferências salvas) ---------- */
   const { data: empresa } = useQuery({
     queryKey: ["empresa"],
     queryFn: async () => {
@@ -146,14 +316,13 @@ export function PncpBuscaClient() {
 
   const prefs = empresa?.pncpPreferencias;
 
-  /* ---------- estado do formulário ---------- */
   const [ufsCsv, setUfsCsv] = useState("");
   const [palavras, setPalavras] = useState("");
   const [tamanho, setTamanho] = useState("20");
-  const [pagina, setPagina] = useState(1);
-  const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [paginas, setPaginas] = useState<Record<string, number>>({ contrato: 1, empenho: 1, ata: 1 });
+  const [resultado, setResultado] = useState<ResultadoAgrupado | null>(null);
+  const [importandoId, setImportandoId] = useState<string | null>(null);
 
-  /* preenche com preferências salvas */
   useEffect(() => {
     if (!prefs) return;
     if (prefs.ufs?.length) setUfsCsv(prefs.ufs.join(", "));
@@ -161,10 +330,9 @@ export function PncpBuscaClient() {
     if (prefs.tamanhoPagina) setTamanho(tamanhoLoteValido(prefs.tamanhoPagina));
   }, [prefs]);
 
-  /* ---------- mutations ---------- */
   const buscarMutation = useMutation({
     mutationFn: async (overrides?: { pagina?: number }) => {
-      const paginaReq = overrides?.pagina ?? pagina;
+      const paginaReq = overrides?.pagina ?? 1;
       const r = await fetch("/api/pncp/contratos", {
         method: "POST",
         credentials: "include",
@@ -178,12 +346,9 @@ export function PncpBuscaClient() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(explicarErro(String(data.error ?? "")));
-      return data as Resultado;
+      return data as ResultadoAgrupado;
     },
-    onSuccess: (data) => {
-      setPagina(data.numeroPagina);
-      setResultado(data);
-    },
+    onSuccess: (data) => setResultado(data),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -216,13 +381,14 @@ export function PncpBuscaClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresa"] });
-      toast.success("Opções salvas! Na próxima vez elas já vêm preenchidas.");
+      toast.success("Opções salvas!");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const importarMutation = useMutation({
-    mutationFn: async (item: { raw: object; urlPncp?: string | null }) => {
+    mutationFn: async (item: { raw: object; urlPncp?: string | null; id: string }) => {
+      setImportandoId(item.id);
       const r = await fetch("/api/licitacoes/pncp", {
         method: "POST",
         credentials: "include",
@@ -235,15 +401,26 @@ export function PncpBuscaClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["licitacoes"] });
-      toast.success("Adicionado ao seu painel! Vá ao Kanban para acompanhar.");
+      toast.success("Adicionado ao painel!");
+      setImportandoId(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setImportandoId(null);
+    },
   });
 
-  /* ---------- render ---------- */
+  function handlePaginaChange(tipo: string, pag: number) {
+    setPaginas((prev) => ({ ...prev, [tipo]: pag }));
+    // Re-buscar com a nova página
+    buscarMutation.mutate({ pagina: pag });
+  }
+
+  const totalGeral = resultado?.totalGeral ?? 0;
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-12">
-      {/* ---- Banner explicativo ---- */}
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
+      {/* Banner explicativo */}
       <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -251,18 +428,11 @@ export function PncpBuscaClient() {
           </div>
           <div>
             <h2 className="text-base font-semibold text-slate-900">
-              Encontre contratos publicados pelo governo
+              Busca no PNCP — Contratos, Empenhos e Atas
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              O governo publica todas as compras e contratações em um site chamado{" "}
-              <strong>PNCP</strong> (Portal Nacional de Contratações Públicas). Aqui você pesquisa
-              esses contratos <strong>sem precisar de cadastro no site do governo</strong> — basta
-              estar logado neste sistema.
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              Digite o que você procura (ex: <em>container</em>, <em>manutenção predial</em>,{" "}
-              <em>software</em>) e o sistema busca direto no governo, trazendo{" "}
-              <strong>somente</strong> o que combina com sua busca.
+              Pesquise no Portal Nacional de Contratações Públicas. Os resultados são
+              separados em <strong>3 colunas</strong>: contratos, empenhos e atas de registro de preços.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <a
@@ -273,35 +443,19 @@ export function PncpBuscaClient() {
               >
                 O que é o PNCP <ExternalLink className="h-3 w-3" />
               </a>
-              <a
-                href={PNCP_DOCS.manuais}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200 hover:bg-blue-50 transition-colors"
-              >
-                Manuais do governo <ExternalLink className="h-3 w-3" />
-              </a>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ---- PASSO 1: O que procura ---- */}
+      {/* Formulário de busca compacto */}
       <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <PassoHeader
-          numero={1}
-          titulo="O que você está procurando?"
-          descricao="Digite palavras que descrevam o produto ou serviço que sua empresa oferece. O governo vai buscar contratos que contenham essas palavras."
-        />
-        <div className="ml-10 space-y-4">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto_auto_auto]">
           <div>
             <label className="text-xs font-medium text-slate-600">
               Palavras-chave
               <Dica>
-                Escreva palavras que costumam aparecer nos contratos que interessam a sua
-                empresa. Exemplos: &quot;container&quot;, &quot;locação equipamento&quot;,
-                &quot;manutenção predial&quot;, &quot;licença software&quot;. Separe por vírgula
-                se quiser buscar mais de uma coisa.
+                Escreva o que procura, separado por vírgula. Ex: container, equipamento portuário
               </Dica>
             </label>
             <textarea
@@ -312,335 +466,122 @@ export function PncpBuscaClient() {
               onChange={(e) => setPalavras(e.target.value)}
             />
           </div>
-        </div>
-      </section>
-
-      {/* ---- PASSO 2: Filtros opcionais ---- */}
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <PassoHeader
-          numero={2}
-          titulo="Refine sua busca (opcional)"
-          descricao="Se quiser, filtre por estados e escolha quantos resultados ver de cada vez."
-        />
-        <div className="ml-10 space-y-4">
           <div>
             <label className="text-xs font-medium text-slate-600">
-              Filtrar por estados
-              <Dica>
-                Digite a sigla dos estados separada por vírgula. Exemplo: SP, RJ, MG. Se deixar
-                em branco, busca em todos os estados do Brasil.
-              </Dica>
+              Estados
+              <Dica>Siglas separadas por vírgula. Vazio = todos.</Dica>
             </label>
             <Input
-              placeholder="Ex: SP, RJ, MG  (deixe vazio para todos)"
+              placeholder="SP, RJ, MG"
               value={ufsCsv}
               onChange={(e) => setUfsCsv(e.target.value)}
-              className="mt-1 max-w-md"
+              className="mt-1 w-32"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-600">
-              Resultados por vez
-              <Dica>
-                Escolha quantos contratos quer ver de cada vez. Depois de buscar, use
-                &quot;Anterior&quot; e &quot;Próximos&quot; para ver mais.
-              </Dica>
-            </label>
+            <label className="text-xs font-medium text-slate-600">Qtd</label>
             <select
               value={tamanho}
               onChange={(e) => setTamanho(e.target.value)}
-              className="mt-1 flex h-9 w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+              className="mt-1 flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
             >
               {TAMANHOS_LOTE.map((v) => (
-                <option key={v} value={String(v)}>
-                  {v} contratos por vez
-                </option>
+                <option key={v} value={String(v)}>{v}</option>
               ))}
             </select>
           </div>
+          <div className="flex items-end gap-2">
+            <Button
+              size="lg"
+              onClick={() => {
+                setPaginas({ contrato: 1, empenho: 1, ata: 1 });
+                setResultado(null);
+                buscarMutation.mutate({ pagina: 1 });
+              }}
+              disabled={buscarMutation.isPending}
+              className="gap-2 text-sm"
+            >
+              {buscarMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              {buscarMutation.isPending ? "Buscando..." : "Buscar"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => salvarPrefsMutation.mutate()}
+              disabled={salvarPrefsMutation.isPending}
+              title="Salvar preferências"
+            >
+              <Save className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
+        {prefs && (
+          <span className="mt-2 inline-flex text-xs text-green-600 items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" /> Preferências carregadas
+          </span>
+        )}
       </section>
 
-      {/* ---- PASSO 3: Buscar ---- */}
-      <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <PassoHeader
-          numero={3}
-          titulo="Buscar"
-          descricao="Clique para consultar os contratos no site do governo."
-        />
-        <div className="ml-10 flex flex-wrap items-center gap-3">
-          <Button
-            size="lg"
-            onClick={() => {
-              setPagina(1);
-              setResultado(null);
-              buscarMutation.mutate({ pagina: 1 });
-            }}
-            disabled={buscarMutation.isPending}
-            className="gap-2 text-sm"
-          >
-            {buscarMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            {buscarMutation.isPending
-              ? "Buscando no governo..."
-              : "Buscar contratos no governo"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => salvarPrefsMutation.mutate()}
-            disabled={salvarPrefsMutation.isPending}
-            className="gap-1.5 text-xs"
-          >
-            <Save className="h-3.5 w-3.5" />
-            {salvarPrefsMutation.isPending ? "Salvando..." : "Lembrar minhas opções"}
-          </Button>
-          {prefs && (
-            <span className="text-xs text-green-600 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" />
-              Opções salvas carregadas
+      {/* Resumo */}
+      {resultado && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-slate-700">
+            <strong className="text-lg text-blue-700">{fmtNum(totalGeral)}</strong> resultado{totalGeral !== 1 && "s"} encontrado{totalGeral !== 1 && "s"}
+          </p>
+          {resultado.filtrosUsados.ufs.length > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
+              <Filter className="h-3 w-3" />
+              {resultado.filtrosUsados.ufs.join(", ")}
             </span>
           )}
+          {resultado.filtrosUsados.palavrasChave.map((p) => (
+            <span
+              key={p}
+              className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+            >
+              {p}
+            </span>
+          ))}
         </div>
-      </section>
+      )}
 
-      {/* ---- Resultados ---- */}
+      {/* Colunas por tipo */}
       {resultado && (
-        <>
-          {/* Painel de resumo */}
-          <section className="rounded-xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-white p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                {resultado.totalRegistros === 0 ? (
-                  <>
-                    <p className="text-base font-semibold text-slate-900">
-                      Nenhum contrato encontrado
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Tente outras palavras-chave ou remova os filtros de estado.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                      <p className="text-2xl font-bold text-blue-700">
-                        {fmtNum(resultado.totalRegistros)}
-                      </p>
-                      <p className="text-sm text-slate-700">
-                        contrato{resultado.totalRegistros !== 1 && "s"} encontrado
-                        {resultado.totalRegistros !== 1 && "s"}
-                        {resultado.filtrosUsados.palavrasChave.length > 0 &&
-                          ` para "${resultado.filtrosUsados.palavrasChave.join(", ")}"`}
-                      </p>
-                    </div>
-                    {/* Badges dos filtros */}
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {resultado.filtrosUsados.ufs.length > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
-                          <Filter className="h-3 w-3" />
-                          Estados: {resultado.filtrosUsados.ufs.join(", ")}
-                        </span>
-                      )}
-                      {resultado.filtrosUsados.palavrasChave.map((p) => (
-                        <span
-                          key={p}
-                          className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
-                        >
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                    {resultado.totalPaginas > 1 && (
-                      <p className="mt-2 text-xs text-slate-500">
-                        Mostrando página {resultado.numeroPagina} de{" "}
-                        {fmtNum(resultado.totalPaginas)} ({resultado.itens.length} contrato
-                        {resultado.itens.length !== 1 && "s"} nesta página)
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {TIPOS_DOC.map((config) => (
+            <ColunaResultado
+              key={config.id}
+              config={config}
+              dados={resultado.porTipo[config.id]}
+              pagina={paginas[config.id] ?? 1}
+              isPending={buscarMutation.isPending}
+              onPaginaChange={handlePaginaChange}
+              onImportar={(item) =>
+                importarMutation.mutate({
+                  ...item,
+                  id: (item.raw as { numeroControlePNCP?: string }).numeroControlePNCP ?? "",
+                })
+              }
+              importandoId={importandoId}
+            />
+          ))}
+        </div>
+      )}
 
-              {resultado.totalRegistros > 0 && resultado.totalPaginas > 1 && (
-                <div className="flex shrink-0 items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1"
-                    disabled={buscarMutation.isPending || resultado.numeroPagina <= 1}
-                    onClick={() =>
-                      buscarMutation.mutate({
-                        pagina: Math.max(1, resultado.numeroPagina - 1),
-                      })
-                    }
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Anterior
-                  </Button>
-                  <span className="text-xs text-slate-500 px-2">
-                    {resultado.numeroPagina}/{resultado.totalPaginas}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1"
-                    disabled={
-                      buscarMutation.isPending ||
-                      resultado.numeroPagina >= resultado.totalPaginas
-                    }
-                    onClick={() =>
-                      buscarMutation.mutate({ pagina: resultado.numeroPagina + 1 })
-                    }
-                  >
-                    Próximos
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Lista vazia */}
-          {resultado.itens.length === 0 && resultado.totalRegistros === 0 && (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center">
-              <Info className="mx-auto h-8 w-8 text-slate-400" />
-              <p className="mt-3 text-sm font-medium text-slate-700">
-                Nenhum contrato encontrado
-              </p>
-              <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-                Tente outras palavras-chave, remova os filtros de estado, ou escreva de forma
-                diferente (ex: &quot;container&quot; ou &quot;contêiner&quot;).
-              </p>
-            </div>
-          )}
-
-          {/* Cards de resultado */}
-          <div className="space-y-3">
-            {resultado.itens.map((row, idx) => (
-              <div
-                key={row.id}
-                className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-200 hover:shadow-md transition-all"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
-                        {(resultado.numeroPagina - 1) * (Number(tamanho) || 20) + idx + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-slate-900 leading-snug line-clamp-2">
-                          {row.titulo}
-                        </p>
-                        <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">
-                          {row.objeto !== row.titulo && row.objeto}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="mt-1.5 ml-7 text-sm text-slate-600">{row.orgao}</p>
-                    <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
-                      {row.uf && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
-                          {row.uf}
-                        </span>
-                      )}
-                      {row.municipio && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-                          {row.municipio}
-                        </span>
-                      )}
-                      {row.valorGlobal != null && (
-                        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
-                          R${" "}
-                          {row.valorGlobal.toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                      )}
-                      {row.modalidade && (
-                        <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">
-                          {row.modalidade}
-                        </span>
-                      )}
-                      {row.categoria && (
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-blue-700">
-                          {row.categoria}
-                        </span>
-                      )}
-                      {row.dataPublicacao && (
-                        <span className="text-slate-400">
-                          Publicado em{" "}
-                          {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
-                        </span>
-                      )}
-                      {row.urlPncp && (
-                        <a
-                          href={row.urlPncp}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
-                        >
-                          Ver no PNCP <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="shrink-0 gap-1.5"
-                    disabled={importarMutation.isPending}
-                    onClick={() => importarMutation.mutate({ raw: row.raw, urlPncp: row.urlPncp })}
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Adicionar ao meu painel
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Navegação inferior */}
-          {resultado.totalRegistros > 0 && resultado.totalPaginas > 1 && (
-            <div className="flex justify-center gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
-                disabled={buscarMutation.isPending || resultado.numeroPagina <= 1}
-                onClick={() =>
-                  buscarMutation.mutate({
-                    pagina: Math.max(1, resultado.numeroPagina - 1),
-                  })
-                }
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Anterior
-              </Button>
-              <span className="flex items-center px-3 text-xs text-slate-500">
-                Página {resultado.numeroPagina} de {fmtNum(resultado.totalPaginas)}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
-                disabled={
-                  buscarMutation.isPending ||
-                  resultado.numeroPagina >= resultado.totalPaginas
-                }
-                onClick={() =>
-                  buscarMutation.mutate({ pagina: resultado.numeroPagina + 1 })
-                }
-              >
-                Próximos
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </>
+      {/* Nenhum resultado */}
+      {resultado && totalGeral === 0 && !buscarMutation.isPending && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center">
+          <Info className="mx-auto h-8 w-8 text-slate-400" />
+          <p className="mt-3 text-sm font-medium text-slate-700">Nenhum resultado encontrado</p>
+          <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+            Tente outras palavras-chave ou remova os filtros de estado.
+          </p>
+        </div>
       )}
     </div>
   );
