@@ -1,32 +1,24 @@
-import type { PrismaClient } from '../generated/prisma/client'
+import type { PrismaClient } from "../generated/prisma/client";
 
-export const FONTE_PNCP_NOME = 'PNCP — API de consultas (oficial)'
-export const FONTE_PNCP_ENDPOINT = 'https://pncp.gov.br/api/consulta'
+export const FONTE_PNCP_NOME = "PNCP — API de consultas (oficial)";
 
-const CONFIG_PADRAO = {
-  modo: 'atualizacao' as const,
-  codigoModalidadeContratacao: 6,
-  diasJanela: 7,
-  maxPaginas: 20,
-  tamanhoPagina: 50,
-}
-
-/** Garante uma fonte PNCP já apontando para a API pública oficial (idempotente). */
+/** Garante uma fonte PNCP existente no banco (idempotente). */
 export async function ensureDefaultPncpFonte(client: PrismaClient) {
-  const existing = await client.captacaoFonte.findFirst({
-    where: { tipo: 'pncp' },
-  })
+  const existing = await client.fonteCaptacao.findFirst({
+    where: { tipo: "pncp" },
+  });
   if (existing) {
-    return existing
+    return existing;
   }
 
-  return client.captacaoFonte.create({
+  return client.fonteCaptacao.create({
     data: {
       nome: FONTE_PNCP_NOME,
-      tipo: 'pncp',
-      endpointBase: FONTE_PNCP_ENDPOINT,
+      tipo: "pncp",
       ativo: true,
-      configuracao: CONFIG_PADRAO,
+      parametros: {},
+      filtros: { palavrasChave: ["container", "contêiner", "empilhadeira"] },
+      periodicidade: "12h",
     },
-  })
+  });
 }
