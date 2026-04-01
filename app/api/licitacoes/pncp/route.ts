@@ -64,6 +64,12 @@ export async function POST(req: Request) {
 
   const dataPub = dataPublicacaoStr ? new Date(dataPublicacaoStr) : null;
 
+  // Associar à fonte PNCP se existir
+  const fontePncp = await db.fonteCaptacao.findFirst({
+    where: { tipo: "pncp", ativo: true },
+    select: { id: true },
+  });
+
   const licitacao = await db.licitacao.create({
     data: {
       titulo,
@@ -77,6 +83,7 @@ export async function POST(req: Request) {
       linkOrigem,
       observacoes: `Importado do PNCP. Controle: ${controle || linkOrigem}`,
       dadosExtraidos: raw as object,
+      fonteId: fontePncp?.id ?? null,
       card: {
         create: { colunaId: colunaInicial.id, ordem: 0 },
       },

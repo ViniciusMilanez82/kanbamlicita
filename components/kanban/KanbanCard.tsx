@@ -20,6 +20,7 @@ interface CardData {
     modalidade: string | null;
     scorePreliminar: number | null;
     classificacaoPreliminar: string | null;
+    fonte: { tipo: string; nome: string } | null;
   };
   urgente: boolean;
   responsavel: { name: string | null } | null;
@@ -28,6 +29,25 @@ interface CardData {
 interface KanbanCardProps {
   card: CardData;
   onClick: () => void;
+}
+
+const FONTE_CONFIG: Record<string, { label: string; cor: string }> = {
+  pncp: { label: "PNCP", cor: "bg-indigo-100 text-indigo-700 ring-indigo-200" },
+  petronect: { label: "Petronect", cor: "bg-orange-100 text-orange-700 ring-orange-200" },
+};
+
+function FonteBadge({ fonte }: { fonte: { tipo: string; nome: string } | null }) {
+  if (!fonte) return (
+    <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1 bg-slate-100 text-slate-600 ring-slate-200">
+      Manual
+    </span>
+  );
+  const config = FONTE_CONFIG[fonte.tipo] ?? { label: fonte.tipo, cor: "bg-slate-100 text-slate-600 ring-slate-200" };
+  return (
+    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1 ${config.cor}`}>
+      {config.label}
+    </span>
+  );
 }
 
 const CLASSIFICACAO_CORES: Record<string, string> = {
@@ -103,10 +123,11 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
         ${isDragging ? "cursor-grabbing shadow-lg ring-2 ring-blue-300" : "hover:shadow-md"}
       `}
     >
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
         <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
           #{card.licitacao.numero}
         </span>
+        <FonteBadge fonte={card.licitacao.fonte} />
         {card.urgente && (
           <Badge variant="destructive" className="shrink-0 text-[10px]">
             Urgente
@@ -164,10 +185,11 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
 export function KanbanCardOverlay({ card }: { card: CardData }) {
   return (
     <div className="w-64 rounded-lg border-2 border-blue-400 bg-white p-3 shadow-xl rotate-2 scale-105">
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
           #{card.licitacao.numero}
         </span>
+        <FonteBadge fonte={card.licitacao.fonte} />
         <ClassificacaoBadge
           classificacao={card.licitacao.classificacaoPreliminar}
           score={card.licitacao.scorePreliminar}

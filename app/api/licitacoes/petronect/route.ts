@@ -59,6 +59,12 @@ export async function POST(req: Request) {
   const postingDate = raw.POSTING_DATE as string | undefined;
   const dataPub = postingDate ? new Date(postingDate + "T00:00:00") : null;
 
+  // Associar à fonte Petronect se existir
+  const fontePetronect = await db.fonteCaptacao.findFirst({
+    where: { tipo: "petronect", ativo: true },
+    select: { id: true },
+  });
+
   const licitacao = await db.licitacao.create({
     data: {
       titulo: titulo.slice(0, 500),
@@ -76,6 +82,7 @@ export async function POST(req: Request) {
       linkOrigem: dedupId,
       observacoes: `Importado do Petronect. Oportunidade: ${opportNum ?? "N/A"}`,
       dadosExtraidos: raw as object,
+      fonteId: fontePetronect?.id ?? null,
       card: {
         create: { colunaId: colunaInicial.id, ordem: 0 },
       },

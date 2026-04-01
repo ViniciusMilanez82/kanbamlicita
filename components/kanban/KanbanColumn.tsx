@@ -18,6 +18,7 @@ interface CardData {
     modalidade: string | null;
     scorePreliminar: number | null;
     classificacaoPreliminar: string | null;
+    fonte: { tipo: string; nome: string } | null;
   };
   urgente: boolean;
   responsavel: { name: string | null } | null;

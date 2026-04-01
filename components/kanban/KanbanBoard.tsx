@@ -44,6 +44,7 @@ interface CardData {
     modalidade: string | null;
     scorePreliminar: number | null;
     classificacaoPreliminar: string | null;
+    fonte: { tipo: string; nome: string } | null;
   };
   urgente: boolean;
   responsavel: { name: string | null } | null;
@@ -200,6 +201,7 @@ export function KanbanBoard() {
             modalidade: l.modalidade,
             scorePreliminar: l.scorePreliminar ?? null,
             classificacaoPreliminar: l.classificacaoPreliminar ?? null,
+            fonte: l.fonte ? { tipo: l.fonte.tipo, nome: l.fonte.nome } : null,
           },
           urgente: l.card!.urgente,
           responsavel: l.card!.responsavel,

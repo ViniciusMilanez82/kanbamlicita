@@ -14,6 +14,7 @@ export async function GET(req: Request) {
           responsavel: { select: { id: true, name: true } },
         },
       },
+      fonte: { select: { id: true, nome: true, tipo: true } },
     },
     orderBy: { criadoEm: "desc" },
   });
