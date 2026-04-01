@@ -8,6 +8,7 @@ import { DashboardDocumental } from "@/components/documentos-empresa/DashboardDo
 import { RepositorioDocumentos } from "@/components/documentos-empresa/RepositorioDocumentos";
 import { ConfiguracaoAlertasTab } from "@/components/documentos-empresa/ConfiguracaoAlertasTab";
 import { HistoricoAuditoriaDoc } from "@/components/documentos-empresa/HistoricoAuditoriaDoc";
+import { AnaliseIaPanel } from "@/components/documentos-empresa/AnaliseIaPanel";
 
 const TABS = [
   { id: "painel", label: "Painel" },
@@ -72,7 +73,10 @@ export default function DocumentosEmpresaPage() {
 
           {/* Conteúdo da aba */}
           {tab === "painel" && (
-            <DashboardDocumental cnpjFiltro={cnpjFiltro || undefined} />
+            <>
+              <DashboardDocumental cnpjFiltro={cnpjFiltro || undefined} />
+              <AnaliseIaPanel />
+            </>
           )}
           {tab === "repositorio" && (
             <RepositorioDocumentos cnpjFiltro={cnpjFiltro || undefined} />
