@@ -179,6 +179,26 @@ async function main() {
     },
   });
 
+  // ==================== FONTE PETRONECT (SP-B) ====================
+  await prisma.fonteCaptacao.upsert({
+    where: { id: "fonte-petronect-default" },
+    update: {},
+    create: {
+      id: "fonte-petronect-default",
+      nome: "Petronect - Contêineres e Equipamentos",
+      tipo: "petronect",
+      ativo: true,
+      filtros: {
+        palavrasChave: ["contêiner", "container", "equipamento portuário", "reach stacker", "empilhadeira"],
+      },
+      parametros: {
+        username: "viniciusmilanez@yahoo.com.br",
+        password: "281001Vin@.",
+      },
+      periodicidade: "12h",
+    },
+  });
+
   console.log("Seed Fase 2 concluído!");
 }
 
