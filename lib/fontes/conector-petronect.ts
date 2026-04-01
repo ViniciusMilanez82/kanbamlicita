@@ -78,7 +78,10 @@ async function buscarOportunidades(
     throw new Error("Resposta inesperada do Petronect. Tente novamente mais tarde.");
   }
 
-  return Array.isArray(data) ? data : ((data as Record<string, unknown>).items ?? (data as Record<string, unknown>).data ?? []);
+  if (Array.isArray(data)) return data as PetronectOportunidade[];
+  const obj = data as Record<string, unknown>;
+  const arr = obj.items ?? obj.data ?? [];
+  return arr as PetronectOportunidade[];
 }
 
 export class ConectorPetronect implements Conector {
