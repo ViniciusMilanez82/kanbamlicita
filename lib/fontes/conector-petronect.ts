@@ -24,17 +24,28 @@ async function autenticar(username: string, password: string): Promise<string> {
     body: JSON.stringify({ username, password }),
   });
 
+  const texto = await res.text().catch(() => "");
+
+  if (texto.trimStart().startsWith("<")) {
+    throw new Error("O Petronect está fora do ar neste momento. Tente novamente mais tarde.");
+  }
+
   if (!res.ok) {
-    const texto = await res.text().catch(() => "");
     throw new Error(`Falha na autenticação Petronect (${res.status}): ${texto}`);
   }
 
-  const data = await res.json();
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(texto);
+  } catch {
+    throw new Error("Resposta inesperada do Petronect. Tente novamente mais tarde.");
+  }
+
   const token = data.token ?? data.access_token ?? data.Token;
   if (!token) {
     throw new Error("Token não encontrado na resposta de autenticação");
   }
-  return token;
+  return token as string;
 }
 
 async function buscarOportunidades(
@@ -50,13 +61,24 @@ async function buscarOportunidades(
     headers: { Authorization: `Bearer ${token}` },
   });
 
+  const texto = await res.text().catch(() => "");
+
+  if (texto.trimStart().startsWith("<")) {
+    throw new Error("O Petronect está fora do ar neste momento. Tente novamente mais tarde.");
+  }
+
   if (!res.ok) {
-    const texto = await res.text().catch(() => "");
     throw new Error(`Erro ao buscar oportunidades Petronect (${res.status}): ${texto}`);
   }
 
-  const data = await res.json();
-  return Array.isArray(data) ? data : (data.items ?? data.data ?? []);
+  let data: unknown;
+  try {
+    data = JSON.parse(texto);
+  } catch {
+    throw new Error("Resposta inesperada do Petronect. Tente novamente mais tarde.");
+  }
+
+  return Array.isArray(data) ? data : ((data as Record<string, unknown>).items ?? (data as Record<string, unknown>).data ?? []);
 }
 
 export class ConectorPetronect implements Conector {
