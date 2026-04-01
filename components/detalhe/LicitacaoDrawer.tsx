@@ -26,6 +26,63 @@ type IaPreview = {
   modelo: string;
 };
 
+function ResumoScoreParecer({ licitacaoId }: { licitacaoId: string }) {
+  const { data: score } = useQuery<Record<string, unknown> | null>({
+    queryKey: ["score-resumo", licitacaoId],
+    queryFn: async () => {
+      const r = await fetch(`/api/licitacoes/${licitacaoId}/score`);
+      if (!r.ok) return null;
+      return r.json();
+    },
+  });
+
+  const { data: parecer } = useQuery<Record<string, unknown> | null>({
+    queryKey: ["parecer-resumo", licitacaoId],
+    queryFn: async () => {
+      const r = await fetch(`/api/licitacoes/${licitacaoId}/parecer`);
+      if (!r.ok) return null;
+      return r.json();
+    },
+  });
+
+  const COR: Record<string, string> = {
+    "A+": "bg-emerald-700 text-white",
+    A: "bg-blue-600 text-white",
+    B: "bg-yellow-500 text-white",
+    C: "bg-orange-500 text-white",
+    D: "bg-red-600 text-white",
+  };
+
+  const hasData = score || parecer;
+
+  return (
+    <div className="border-t pt-3 mt-3 space-y-2">
+      {score && (
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${COR[String(score.classificacao)] ?? "bg-slate-400 text-white"}`}>
+            {String(score.classificacao)}
+          </span>
+          <span className="text-sm font-semibold">{Number(score.scoreFinal)}/100</span>
+        </div>
+      )}
+      {parecer && (
+        <div className="text-xs text-slate-600">
+          {parecer.prioridadeComercial && <span>Prioridade: {String(parecer.prioridadeComercial)}</span>}
+          {parecer.valeEsforcoComercial != null && (
+            <span className="ml-2">Vale esforco: {parecer.valeEsforcoComercial ? "Sim" : "Nao"}</span>
+          )}
+        </div>
+      )}
+      <a
+        href={`/licitacoes/${licitacaoId}`}
+        className="text-xs text-blue-600 hover:underline"
+      >
+        {hasData ? "Ver analise completa →" : "Analisar →"}
+      </a>
+    </div>
+  );
+}
+
 export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) {
   const queryClient = useQueryClient();
   const isNova = licitacaoId === "nova";
@@ -462,6 +519,7 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                   onSave={(v: string) => updateMutation.mutate({ observacoes: v })}
                   multiline
                 />
+                <ResumoScoreParecer licitacaoId={licitacaoId} />
               </section>
 
               {/* ── Assistente IA ── */}
