@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, Search, Settings } from "lucide-react";
+import { BarChart3, LayoutDashboard, Package, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
+  { href: "/dashboard", label: "Painel", icon: BarChart3 },
   { href: "/kanban", label: "Kanban", icon: LayoutDashboard },
   { href: "/pncp", label: "Compras públicas", icon: Search },
   { href: "/petronect", label: "Petronect", icon: Search },
