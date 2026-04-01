@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     role: string;
   };
 
-  if (!["user", "admin"].includes(role)) {
+  if (!["admin", "juridico", "administrativo", "comercial", "leitura", "user"].includes(role)) {
     return NextResponse.json({ error: "Role inválida" }, { status: 400 });
   }
 

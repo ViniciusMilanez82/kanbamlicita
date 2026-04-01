@@ -35,7 +35,7 @@ export function UsuariosTab() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [role, setRole] = useState("user");
+  const [role, setRole] = useState("comercial");
 
   // Edição inline
   const [editando, setEditando] = useState<EditandoUsuario>(null);
@@ -69,7 +69,7 @@ export function UsuariosTab() {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
       toast.success("Usuário criado!");
       setShowForm(false);
-      setNome(""); setEmail(""); setSenha(""); setConfirmarSenha(""); setRole("user"); setMostrarSenha(false);
+      setNome(""); setEmail(""); setSenha(""); setConfirmarSenha(""); setRole("comercial"); setMostrarSenha(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -187,8 +187,11 @@ export function UsuariosTab() {
                       value={editando.role}
                       onChange={(e) => setEditando({ ...editando, role: e.target.value })}
                     >
-                      <option value="user">Usuário</option>
                       <option value="admin">Administrador</option>
+                      <option value="juridico">Jurídico</option>
+                      <option value="administrativo">Administrativo</option>
+                      <option value="comercial">Comercial</option>
+                      <option value="leitura">Somente leitura</option>
                     </select>
                   </div>
                   <div>
@@ -275,7 +278,7 @@ export function UsuariosTab() {
                           variant="outline"
                           className={`text-[10px] ${u.role === "admin" ? "border-amber-300 text-amber-700" : ""}`}
                         >
-                          {u.role === "admin" ? "Administrador" : "Usuário"}
+                          {{ admin: "Administrador", juridico: "Jurídico", administrativo: "Administrativo", comercial: "Comercial", leitura: "Leitura", user: "Usuário" }[u.role] ?? u.role}
                         </Badge>
                         {!u.ativo && (
                           <Badge variant="secondary" className="text-[10px]">Inativo</Badge>

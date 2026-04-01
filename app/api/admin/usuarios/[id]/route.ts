@@ -16,7 +16,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     ativo?: boolean;
   };
 
-  if (body.role !== undefined && !["user", "admin"].includes(body.role)) {
+  if (body.role !== undefined && !["admin", "juridico", "administrativo", "comercial", "leitura", "user"].includes(body.role)) {
     return NextResponse.json({ error: "Role inválida" }, { status: 400 });
   }
 

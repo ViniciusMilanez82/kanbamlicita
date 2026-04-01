@@ -50,6 +50,40 @@ enum AcaoAuditoria {
   exclusao
 }
 
+// ==================== GESTÃO DOCUMENTAL (HABILITAÇÃO) ====================
+
+enum CategoriaHabilitacao {
+  juridica
+  fiscal
+  trabalhista
+  tecnica
+  economica
+  complementar
+}
+
+enum StatusDocumentoEmpresa {
+  vigente
+  vencendo
+  vencido
+  substituido
+}
+
+enum NivelAlerta {
+  verde
+  amarelo
+  laranja
+  vermelho
+  preto
+}
+
+enum AcaoAuditoriaDoc {
+  upload
+  substituicao
+  exclusao
+  alteracao_metadata
+  download
+}
+
 enum TipoFonte {
   pncp
   petronect
@@ -489,6 +523,70 @@ model AcaoIa {
   @@map("acoes_ia")
 }
 
+// ==================== GESTÃO DOCUMENTAL — MODELS ====================
+
+model DocumentoEmpresa {
+  id                String                  @id @default(cuid())
+  cnpj              String                  @db.VarChar(18)
+  categoria         CategoriaHabilitacao
+  tipoDocumento     String                  @map("tipo_documento") @db.VarChar(100)
+  nome              String
+  nomeOriginal      String                  @map("nome_original")
+  tamanho           Int
+  mimeType          String                  @map("mime_type")
+  caminho           String
+  versao            Int                     @default(1)
+  versaoAnteriorId  String?                 @map("versao_anterior_id")
+  dataEmissao       DateTime?               @map("data_emissao")
+  dataValidade      DateTime?               @map("data_validade")
+  orgaoEmissor      String?                 @map("orgao_emissor") @db.VarChar(200)
+  observacoes       String?                 @db.Text
+  status            StatusDocumentoEmpresa  @default(vigente)
+  nivelAlerta       NivelAlerta?            @map("nivel_alerta")
+  enviadoPorId      String                  @map("enviado_por_id")
+  criadoEm          DateTime                @default(now()) @map("criado_em")
+  atualizadoEm      DateTime                @updatedAt @map("atualizado_em")
+
+  enviadoPor         User               @relation("docEmpresaEnviadoPor", fields: [enviadoPorId], references: [id])
+  versaoAnterior     DocumentoEmpresa?  @relation("versoes", fields: [versaoAnteriorId], references: [id])
+  versoesPosteriores DocumentoEmpresa[] @relation("versoes")
+  auditorias         AuditoriaDocumento[]
+
+  @@index([cnpj, categoria])
+  @@index([dataValidade])
+  @@index([status])
+  @@map("documentos_empresa")
+}
+
+model ConfiguracaoAlertaDoc {
+  id              String   @id @default(cuid())
+  tipoDocumento   String   @unique @map("tipo_documento") @db.VarChar(100)
+  diasVerde       Int      @default(90) @map("dias_verde")
+  diasAmarelo     Int      @default(60) @map("dias_amarelo")
+  diasLaranja     Int      @default(30) @map("dias_laranja")
+  diasVermelho    Int      @default(15) @map("dias_vermelho")
+  diasPreto       Int      @default(0)  @map("dias_preto")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  @@map("configuracoes_alerta_doc")
+}
+
+model AuditoriaDocumento {
+  id              String            @id @default(cuid())
+  documentoId     String            @map("documento_id")
+  acao            AcaoAuditoriaDoc
+  detalhes        String?           @db.Text
+  realizadoPorId  String            @map("realizado_por_id")
+  criadoEm        DateTime          @default(now()) @map("criado_em")
+
+  documento    DocumentoEmpresa @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  realizadoPor User             @relation("auditDocRealizadoPor", fields: [realizadoPorId], references: [id])
+
+  @@index([documentoId])
+  @@map("auditoria_documentos")
+}
+
 // ─── Autenticação (NextAuth v5) ───────────────────────────────────────────────
 // IMPORTANTE: Os nomes de modelo em inglês são exigidos pelo @auth/prisma-adapter.
 // As tabelas no banco são mapeadas para português via @@map.
@@ -505,11 +603,13 @@ model User {
   criadoEm      DateTime  @default(now()) @map("criado_em")
   atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
 
-  accounts    Account[]
-  sessions    Session[]
-  kanbanCards KanbanCard[]
-  auditorias  AuditoriaParametro[]
-  documentos  Documento[]
+  accounts              Account[]
+  sessions              Session[]
+  kanbanCards            KanbanCard[]
+  auditorias             AuditoriaParametro[]
+  documentos             Documento[]
+  documentosEmpresa      DocumentoEmpresa[]      @relation("docEmpresaEnviadoPor")
+  auditoriasDocumento    AuditoriaDocumento[]    @relation("auditDocRealizadoPor")
 
   @@map("usuarios")
 }

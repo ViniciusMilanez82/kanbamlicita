@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { executarCaptacao } from "./pipeline";
 import { verificarPrazosVencendo } from "@/lib/notificacoes/gerar";
+import { atualizarAlertasTodosDocumentos } from "@/lib/documentos-empresa/alertas";
+import { verificarDocumentosVencendo } from "@/lib/documentos-empresa/notificacoes";
 
 const INTERVALO_CHECK_MS = 5 * 60 * 1000; // Verifica a cada 5 minutos
 
@@ -65,6 +67,10 @@ export async function verificarEExecutarFontes(): Promise<{
 
   // Verificar prazos vencendo (a cada ciclo)
   verificarPrazosVencendo().catch(console.error);
+
+  // Gestão documental: atualizar alertas e notificar vencimentos
+  atualizarAlertasTodosDocumentos().catch(console.error);
+  verificarDocumentosVencendo().catch(console.error);
 
   return { executadas, erros };
 }
