@@ -49,12 +49,13 @@ export async function buscarContratosPncp(params: {
   uf?: string[];
   pagina: number;
   tamanhoPagina: number;
+  tipoDocumento?: string;
 }): Promise<PncpSearchResponse> {
   const tamanho = Math.min(50, Math.max(5, params.tamanhoPagina));
   const pagina = Math.max(1, params.pagina);
 
   const url = new URL(PNCP_SEARCH_BASE);
-  url.searchParams.set("tipos_documento", "contrato");
+  url.searchParams.set("tipos_documento", params.tipoDocumento ?? "contrato");
   url.searchParams.set("pagina", String(pagina));
   url.searchParams.set("tam_pagina", String(tamanho));
 

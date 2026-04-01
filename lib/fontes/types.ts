@@ -22,6 +22,7 @@ export type ResultadoConector = {
 export type FiltrosFonte = {
   palavrasChave?: string[];
   ufs?: string[];
+  tiposDocumento?: string[];
 };
 
 export type ParametrosFonte = {
