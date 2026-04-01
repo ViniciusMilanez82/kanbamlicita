@@ -288,6 +288,8 @@ model Licitacao {
   analiseIa     LicitacaoAnaliseIa?
   score         LicitacaoScore?
   parecer       LicitacaoParecer?
+  notificacoes  Notificacao[]
+  documentos    Documento[]
 
   @@map("licitacoes")
 }
@@ -432,6 +434,42 @@ model LicitacaoParecer {
   @@map("licitacoes_parecer")
 }
 
+// ==================== NOTIFICAÇÕES ====================
+
+model Notificacao {
+  id          String    @id @default(cuid())
+  tipo        String    // nova_licitacao, score_alto, prazo_vencendo, captacao_concluida
+  titulo      String
+  mensagem    String    @db.Text
+  lida        Boolean   @default(false)
+  licitacaoId String?   @map("licitacao_id")
+  criadoEm    DateTime  @default(now()) @map("criado_em")
+
+  licitacao Licitacao? @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("notificacoes")
+}
+
+// ==================== DOCUMENTOS ====================
+
+model Documento {
+  id            String   @id @default(cuid())
+  licitacaoId   String   @map("licitacao_id")
+  nome          String
+  nomeOriginal  String   @map("nome_original")
+  tipo          String   // edital, tr, proposta, ata, contrato, outro
+  tamanho       Int
+  mimeType      String   @map("mime_type")
+  caminho       String   // path no servidor
+  criadoEm      DateTime @default(now()) @map("criado_em")
+  enviadoPorId  String?  @map("enviado_por_id")
+
+  licitacao  Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  enviadoPor User?     @relation(fields: [enviadoPorId], references: [id])
+
+  @@map("documentos")
+}
+
 // ==================== IA ====================
 
 model AcaoIa {
@@ -471,6 +509,7 @@ model User {
   sessions    Session[]
   kanbanCards KanbanCard[]
   auditorias  AuditoriaParametro[]
+  documentos  Documento[]
 
   @@map("usuarios")
 }

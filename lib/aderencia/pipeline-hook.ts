@@ -2,10 +2,12 @@ import { db } from "@/lib/db";
 import type { Licitacao } from "@/lib/generated/prisma/client";
 import { avaliarAderencia } from "./avaliador";
 import type { InputJsonValue } from "@prisma/client/runtime/client";
+import { notificarScoreAlto } from "@/lib/notificacoes/gerar";
 
 /**
  * Avalia aderencia de uma licitacao contra todas as regras ativas
  * e salva o resultado nos campos da licitacao.
+ * Gera notificação se score for alto.
  */
 export async function avaliarEPersistir(
   licitacaoId: string
@@ -27,4 +29,12 @@ export async function avaliarEPersistir(
       classificacaoPreliminar: resultado.classificacao,
     },
   });
+
+  // Notificar se score alto
+  notificarScoreAlto(
+    licitacaoId,
+    licitacao.titulo,
+    resultado.scorePreliminar,
+    resultado.classificacao
+  ).catch(() => {});
 }
