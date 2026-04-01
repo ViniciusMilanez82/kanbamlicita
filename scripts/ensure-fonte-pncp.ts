@@ -4,7 +4,7 @@ import { ensureDefaultPncpFonte } from '../lib/captacao/ensure-default-pncp-font
 
 async function main() {
   const f = await ensureDefaultPncpFonte(db)
-  console.log(`Fonte PNCP: ${f.nome} — ${f.endpointBase ?? '(env padrão)'} — id ${f.id}`)
+  console.log(`Fonte PNCP: ${f.nome} — id ${f.id}`)
 }
 
 main()
