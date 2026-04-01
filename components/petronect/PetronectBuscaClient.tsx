@@ -12,23 +12,10 @@ import {
   Loader2,
   Search,
 } from "lucide-react";
-
-type OportunidadePetronect = {
-  opport_num: number;
-  descricao?: string;
-  orgao?: string;
-  objeto?: string;
-  modalidade?: string;
-  uf?: string;
-  municipio?: string;
-  valor_estimado?: number;
-  data_publicacao?: string;
-  data_fim?: string;
-  [key: string]: unknown;
-};
+import type { PetronectOportunidade } from "@/lib/fontes/conector-petronect";
 
 type Resultado = {
-  itens: OportunidadePetronect[];
+  itens: PetronectOportunidade[];
   total: number;
   query: string;
 };
@@ -38,12 +25,13 @@ function explicarErro(texto: string): string {
   if (!t) return "Algo deu errado. Tente de novo daqui a pouco.";
   if (/fora do ar|502|Bad Gateway/i.test(t))
     return "O Petronect está fora do ar neste momento. Tente novamente mais tarde.";
-  if (/n[aã]o autenticado/i.test(t))
-    return "Você precisa estar logado. Atualize a página (F5) e entre de novo.";
-  if (/credenciais|configurad/i.test(t))
-    return t;
-  if (/409|já existe|já foi adicionad/i.test(t))
+  if (/incorretos|NotAuthorized/i.test(t))
+    return "E-mail ou senha do Petronect incorretos. Verifique nas Configurações.";
+  if (/credenciais|configurad/i.test(t)) return t;
+  if (/409|já existe|já foi/i.test(t))
     return "Essa oportunidade já está no seu painel. Abra o Kanban para vê-la.";
+  if (/expirad/i.test(t))
+    return "A sessão expirou. Tente buscar novamente.";
   return t;
 }
 
@@ -51,6 +39,7 @@ export function PetronectBuscaClient() {
   const queryClient = useQueryClient();
   const [palavras, setPalavras] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [importados, setImportados] = useState<Set<string>>(new Set());
 
   const buscarMutation = useMutation({
     mutationFn: async () => {
@@ -69,7 +58,7 @@ export function PetronectBuscaClient() {
   });
 
   const importarMutation = useMutation({
-    mutationFn: async (item: OportunidadePetronect) => {
+    mutationFn: async (item: PetronectOportunidade) => {
       const r = await fetch("/api/licitacoes/petronect", {
         method: "POST",
         credentials: "include",
@@ -78,10 +67,11 @@ export function PetronectBuscaClient() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(explicarErro(String(data.error ?? "")));
-      return data;
+      return { data, opportNum: item.OPPORT_NUM };
     },
-    onSuccess: () => {
+    onSuccess: ({ opportNum }) => {
       queryClient.invalidateQueries({ queryKey: ["licitacoes"] });
+      setImportados((prev) => new Set(prev).add(opportNum));
       toast.success("Adicionado ao seu painel! Vá ao Kanban para acompanhar.");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -100,9 +90,9 @@ export function PetronectBuscaClient() {
               Oportunidades no Petronect
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              O <strong>Petronect</strong> é o portal de compras da Petrobras e suas
-              subsidiárias. Aqui você busca oportunidades abertas de fornecimento
-              usando suas palavras-chave.
+              O <strong>Petronect</strong> é o portal de compras da Petrobras e
+              suas subsidiárias. Aqui você busca oportunidades abertas de
+              fornecimento usando suas palavras-chave.
             </p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               As credenciais de acesso são as configuradas na fonte Petronect em{" "}
@@ -123,8 +113,8 @@ export function PetronectBuscaClient() {
               O que você está procurando?
             </p>
             <p className="text-xs text-slate-500">
-              Digite palavras que descrevam o produto ou serviço. Separe por vírgula
-              para buscar vários termos.
+              Digite palavras que descrevam o produto ou serviço. Separe por
+              vírgula para buscar vários termos.
             </p>
           </div>
         </div>
@@ -194,94 +184,114 @@ export function PetronectBuscaClient() {
           )}
 
           <div className="space-y-3">
-            {resultado.itens.map((item, idx) => (
-              <div
-                key={item.opport_num ?? idx}
-                className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-teal-200 hover:shadow-md transition-all"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-slate-900 leading-snug line-clamp-2">
-                          {item.descricao ?? `Oportunidade ${item.opport_num}`}
-                        </p>
-                        {item.objeto && item.objeto !== item.descricao && (
-                          <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">
-                            {item.objeto}
+            {resultado.itens.map((item, idx) => {
+              const jaImportado = importados.has(item.OPPORT_NUM);
+              const uf = item.REGIONS?.[0]?.REGION;
+              const regiao = item.REGIONS?.[0]?.REGION_DESCRIPTION;
+              const titulo =
+                item.DESC_OBJ_CONTRAT ||
+                item.OPPORT_DESCR ||
+                `Oportunidade ${item.OPPORT_NUM}`;
+
+              return (
+                <div
+                  key={item.OPPORT_NUM ?? idx}
+                  className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-teal-200 hover:shadow-md transition-all"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-slate-900 leading-snug line-clamp-2">
+                            {titulo}
                           </p>
+                          {item.OPPORT_DESCR &&
+                            item.OPPORT_DESCR !== titulo && (
+                              <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">
+                                {item.OPPORT_DESCR}
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                      {item.COMPANY_DESC && (
+                        <p className="mt-1.5 ml-7 text-sm text-slate-600">
+                          {item.COMPANY_DESC}
+                        </p>
+                      )}
+                      <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
+                        {uf && (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                            {uf}
+                          </span>
                         )}
+                        {regiao && (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+                            {regiao}
+                          </span>
+                        )}
+                        {item.STATUS_DESC && (
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
+                            {item.STATUS_DESC}
+                          </span>
+                        )}
+                        {item.OPPORT_TYPE && (
+                          <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">
+                            {item.OPPORT_TYPE}
+                          </span>
+                        )}
+                        {item.POSTING_DATE && (
+                          <span className="text-slate-400">
+                            Publicado em{" "}
+                            {new Date(
+                              item.POSTING_DATE + "T00:00:00"
+                            ).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                        {item.END_DATE && (
+                          <span className="text-slate-400">
+                            Encerra em{" "}
+                            {new Date(
+                              item.END_DATE + "T00:00:00"
+                            ).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                        {item.score != null && (
+                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
+                            Relevância: {Math.round(item.score)}%
+                          </span>
+                        )}
+                        <a
+                          href="https://minhapetronect.com.br/oportunidadespublicas"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-0.5 text-teal-600 hover:underline"
+                        >
+                          Ver no Petronect{" "}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
                     </div>
-                    {item.orgao && (
-                      <p className="mt-1.5 ml-7 text-sm text-slate-600">
-                        {item.orgao}
-                      </p>
-                    )}
-                    <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
-                      {item.uf && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
-                          {item.uf}
-                        </span>
-                      )}
-                      {item.municipio && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-                          {item.municipio}
-                        </span>
-                      )}
-                      {item.valor_estimado != null && item.valor_estimado > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
-                          R${" "}
-                          {item.valor_estimado.toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                      )}
-                      {item.modalidade && (
-                        <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">
-                          {item.modalidade}
-                        </span>
-                      )}
-                      {item.data_publicacao && (
-                        <span className="text-slate-400">
-                          Publicado em{" "}
-                          {new Date(item.data_publicacao).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </span>
-                      )}
-                      {item.data_fim && (
-                        <span className="text-slate-400">
-                          Encerra em{" "}
-                          {new Date(item.data_fim).toLocaleDateString("pt-BR")}
-                        </span>
-                      )}
-                      <a
-                        href={`https://rc4nmhja42.execute-api.us-east-1.amazonaws.com/v1/oportunidade-publica/aberta/${item.opport_num}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-0.5 text-teal-600 hover:underline"
-                      >
-                        Detalhes <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant={jaImportado ? "outline" : "default"}
+                      className={
+                        jaImportado
+                          ? "shrink-0 gap-1.5 border-green-300 text-green-700"
+                          : "shrink-0 gap-1.5 bg-teal-600 hover:bg-teal-700"
+                      }
+                      disabled={importarMutation.isPending || jaImportado}
+                      onClick={() => importarMutation.mutate(item)}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {jaImportado ? "Adicionado" : "Adicionar ao painel"}
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="shrink-0 gap-1.5 bg-teal-600 hover:bg-teal-700"
-                    disabled={importarMutation.isPending}
-                    onClick={() => importarMutation.mutate(item)}
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Adicionar ao painel
-                  </Button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

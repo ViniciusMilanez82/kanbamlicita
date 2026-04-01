@@ -69,6 +69,8 @@ export interface KanbanColuna {
 
 export interface KanbanMetricas {
   total: number;
-  porColuna: { colunaId: string; colunaNome: string; count: number }[];
+  porColuna: { colunaId: string; colunaNome: string; cor: string; count: number }[];
   urgentes: number;
+  semResponsavel: number;
+  captadasHoje: number;
 }

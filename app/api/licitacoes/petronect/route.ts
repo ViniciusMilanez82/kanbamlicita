@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const opportNum = raw.opport_num as number | undefined;
+  const opportNum = raw.OPPORT_NUM as string | undefined;
   const dedupId = `petronect:${opportNum ?? Date.now()}`;
 
   const existente = await db.licitacao.findFirst({
@@ -24,7 +24,10 @@ export async function POST(req: Request) {
   });
   if (existente) {
     return NextResponse.json(
-      { error: "Essa oportunidade Petronect já foi importada", id: existente.id },
+      {
+        error: "Essa oportunidade já está no seu painel.",
+        id: existente.id,
+      },
       { status: 409 }
     );
   }
@@ -42,21 +45,31 @@ export async function POST(req: Request) {
   }
 
   const titulo =
-    (raw.descricao as string) ?? `Oportunidade Petronect ${opportNum}`;
-  const valorEstimado =
-    typeof raw.valor_estimado === "number" ? raw.valor_estimado : null;
-  const dataPubStr = raw.data_publicacao as string | undefined;
-  const dataPub = dataPubStr ? new Date(dataPubStr) : null;
+    (raw.DESC_OBJ_CONTRAT as string) ||
+    (raw.OPPORT_DESCR as string) ||
+    `Oportunidade Petronect ${opportNum}`;
+
+  const regions = raw.REGIONS as
+    | { REGION?: string; REGION_DESCRIPTION?: string }[]
+    | undefined;
+  const uf = regions?.[0]?.REGION ?? null;
+  const municipio = regions?.[0]?.REGION_DESCRIPTION ?? null;
+
+  const postingDate = raw.POSTING_DATE as string | undefined;
+  const dataPub = postingDate ? new Date(postingDate + "T00:00:00") : null;
 
   const licitacao = await db.licitacao.create({
     data: {
       titulo: titulo.slice(0, 500),
-      orgao: (raw.orgao as string) ?? null,
-      objeto: (raw.objeto as string) ?? null,
-      modalidade: (raw.modalidade as string) ?? null,
-      uf: (raw.uf as string) ?? null,
-      municipio: (raw.municipio as string) ?? null,
-      valorEstimado,
+      orgao: (raw.COMPANY_DESC as string) ?? null,
+      objeto:
+        (raw.DESC_OBJ_CONTRAT as string) ||
+        (raw.OPPORT_DESCR as string) ||
+        null,
+      modalidade: (raw.OPPORT_TYPE as string) ?? null,
+      uf,
+      municipio,
+      valorEstimado: null,
       dataPublicacao:
         dataPub && !Number.isNaN(dataPub.getTime()) ? dataPub : null,
       linkOrigem: dedupId,
