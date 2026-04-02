@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { nome, cor, tipo } = body;
+  const { nome, cor, tipo, acoesPadrao, corEtapa, papelResponsavel } = body;
 
   if (!nome) return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
 
@@ -29,7 +29,15 @@ export async function POST(req: Request) {
   const ordem = (maxOrdem._max.ordem ?? -1) + 1;
 
   const coluna = await db.kanbanColuna.create({
-    data: { nome, ordem, cor: cor ?? "#3B82F6", tipo: tipo ?? "normal" },
+    data: {
+      nome,
+      ordem,
+      cor: cor ?? "#3B82F6",
+      tipo: tipo ?? "normal",
+      acoesPadrao: Array.isArray(acoesPadrao) ? acoesPadrao : [],
+      corEtapa: corEtapa ?? null,
+      papelResponsavel: papelResponsavel ?? null,
+    },
   });
 
   return NextResponse.json(coluna, { status: 201 });
@@ -43,13 +51,22 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { id, nome, cor, tipo, ordem, ativo } = body;
+  const { id, nome, cor, tipo, ordem, ativo, acoesPadrao, corEtapa, papelResponsavel } = body;
 
   if (!id) return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
 
   const coluna = await db.kanbanColuna.update({
     where: { id },
-    data: { nome, cor, tipo, ordem, ativo },
+    data: {
+      nome,
+      cor,
+      tipo,
+      ordem,
+      ativo,
+      ...(acoesPadrao !== undefined ? { acoesPadrao } : {}),
+      ...(corEtapa !== undefined ? { corEtapa } : {}),
+      ...(papelResponsavel !== undefined ? { papelResponsavel } : {}),
+    },
   });
 
   return NextResponse.json(coluna);

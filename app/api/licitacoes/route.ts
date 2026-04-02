@@ -10,11 +10,12 @@ export async function GET(req: Request) {
     include: {
       card: {
         include: {
-          coluna: { select: { id: true, nome: true, cor: true } },
+          coluna: true,
           responsavel: { select: { id: true, name: true } },
         },
       },
       fonte: { select: { id: true, nome: true, tipo: true } },
+      score: { select: { scoreFinal: true, classificacao: true } },
     },
     orderBy: { criadoEm: "desc" },
   });
