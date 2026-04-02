@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, ExternalLink, Save, Trash2, ArrowRight } from "lucide-react";
+import { X, ExternalLink, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoEditavel } from "./CampoEditavel";
@@ -10,10 +10,15 @@ import { TimelineMovimentos } from "./TimelineMovimentos";
 import { BotaoIa } from "./BotaoIa";
 import { RespostaIa, RespostaIaPreview } from "./RespostaIa";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { AcaoIa } from "@/types/licitacao";
 import { AnaliseProfunda } from "./AnaliseProfunda";
+import { BlocoOQueFazer } from "./BlocoOQueFazer";
+import { BlocoAcoesEtapa } from "./BlocoAcoesEtapa";
+import { BlocoAvancar } from "./BlocoAvancar";
+import { ResumoExecutivo } from "./ResumoExecutivo";
+import { SecaoColapsavel } from "./SecaoColapsavel";
+import { getChecklistItensColuna } from "@/lib/kanban/checklist-por-coluna";
 
 interface LicitacaoDrawerProps {
   licitacaoId: string;
@@ -84,6 +89,17 @@ function ResumoScoreParecer({ licitacaoId }: { licitacaoId: string }) {
   );
 }
 
+type ColunaComMeta = {
+  id: string;
+  nome: string;
+  cor: string;
+  tipo: string;
+  ordem: number;
+  acoesPadrao: string[];
+  corEtapa: string | null;
+  papelResponsavel: string | null;
+};
+
 export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) {
   const queryClient = useQueryClient();
   const isNova = licitacaoId === "nova";
@@ -102,11 +118,7 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
   // Preview da IA (ainda não gravado)
   const [iaPreview, setIaPreview] = useState<IaPreview | null>(null);
 
-  // Mover card de coluna
-  const [motivoMover, setMotivoMover] = useState("");
-  const [colunaPendente, setColunaPendente] = useState<{ id: string; nome: string; tipo: string } | null>(null);
-
-  const { data: colunas = [] } = useQuery<{ id: string; nome: string; cor: string; tipo: string }[]>({
+  const { data: colunas = [] } = useQuery<ColunaComMeta[]>({
     queryKey: ["colunas"],
     queryFn: async () => {
       const r = await fetch("/api/colunas");
@@ -116,49 +128,6 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
     },
     enabled: !isNova,
   });
-
-  const moverMutation = useMutation({
-    mutationFn: (data: { cardId: string; colunaDestinoId: string; motivo?: string }) =>
-      fetch("/api/kanban/mover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }).then((r) => {
-        if (!r.ok) return r.json().then((e: { error: string }) => Promise.reject(new Error(e.error)));
-        return r.json();
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["licitacao", licitacaoId] });
-      queryClient.invalidateQueries({ queryKey: ["licitacoes"] });
-      toast.success("Card movido!");
-      setColunaPendente(null);
-      setMotivoMover("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  function handleMoverColuna(colunaDestinoId: string) {
-    if (!licitacao?.card) return;
-    if (colunaDestinoId === licitacao.card.coluna?.id) return;
-
-    const colDestino = colunas.find((c) => c.id === colunaDestinoId);
-    if (!colDestino) return;
-
-    if (colDestino.tipo === "final_negativo") {
-      setColunaPendente(colDestino);
-    } else {
-      moverMutation.mutate({ cardId: licitacao.card.id, colunaDestinoId });
-    }
-  }
-
-  function confirmarMover() {
-    if (!colunaPendente || !licitacao?.card || !motivoMover.trim()) return;
-    moverMutation.mutate({
-      cardId: licitacao.card.id,
-      colunaDestinoId: colunaPendente.id,
-      motivo: motivoMover.trim(),
-    });
-  }
 
   const { data: licitacao } = useQuery({
     queryKey: ["licitacao", licitacaoId],
@@ -269,6 +238,15 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
     setIaPreview(null);
     toast.info("Análise descartada.");
   }
+
+  // Dados derivados para os 3 blocos (só calculados quando licitacao existe)
+  const colunaAtual = colunas.find((c) => c.id === licitacao?.card?.coluna?.id);
+  const checklistItens = getChecklistItensColuna(
+    colunaAtual?.nome,
+    licitacao?.card?.checklistProgresso
+  );
+  const acoesPadrao = colunaAtual?.acoesPadrao ?? [];
+  const mostrarResumoExecutivo = acoesPadrao.includes("resumo_executivo");
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -405,82 +383,84 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
               )}
             </div>
           ) : licitacao ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {/* ── Header: numero + coluna badge + urgente + link edital ── */}
               <div className="flex flex-wrap items-center gap-2">
                 {licitacao.numero && (
                   <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">
                     #{licitacao.numero}
                   </span>
                 )}
-                {licitacao.card && (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                      <select
-                        className="rounded-md border px-2 py-1 text-xs font-medium text-white cursor-pointer"
-                        style={{ backgroundColor: licitacao.card.coluna?.cor ?? "#3B82F6" }}
-                        value={licitacao.card.coluna?.id ?? ""}
-                        onChange={(e) => handleMoverColuna(e.target.value)}
-                      >
-                        {colunas.map((col) => (
-                          <option key={col.id} value={col.id} style={{ backgroundColor: "#fff", color: "#333" }}>
-                            {col.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {licitacao.card.urgente && <Badge variant="destructive">Urgente</Badge>}
-                  </>
+                {licitacao.card?.coluna && (
+                  <span
+                    className="rounded-md px-2 py-0.5 text-xs font-medium text-white"
+                    style={{ backgroundColor: licitacao.card.coluna.cor ?? "#3B82F6" }}
+                  >
+                    {licitacao.card.coluna.nome}
+                  </span>
                 )}
+                {licitacao.card?.urgente && <Badge variant="destructive">Urgente</Badge>}
+                {licitacao.linkOrigem && (() => {
+                  let href = licitacao.linkOrigem as string;
+                  if (href.startsWith("pncp-contrato:")) {
+                    const id = href.replace("pncp-contrato:", "");
+                    href = `https://pncp.gov.br/app/editais/${id}`;
+                  }
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline ml-auto"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Edital
+                    </a>
+                  );
+                })()}
               </div>
 
-              {/* Modal inline de motivo para coluna final negativa */}
-              {colunaPendente && (
-                <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-3 space-y-2">
-                  <p className="text-sm font-medium text-amber-800">
-                    Por que está movendo para &quot;{colunaPendente.nome}&quot;?
-                  </p>
-                  <Textarea
-                    placeholder="Ex: Licitação cancelada, prazo expirado, não atende requisitos..."
-                    value={motivoMover}
-                    onChange={(e) => setMotivoMover(e.target.value)}
-                    rows={2}
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={confirmarMover} disabled={!motivoMover.trim()}>
-                      Confirmar
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setColunaPendente(null); setMotivoMover(""); }}>
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
+              {/* ── Bloco 1: O Que Fazer (checklist da etapa) ── */}
+              {licitacao.card && colunaAtual && (
+                <BlocoOQueFazer
+                  cardId={licitacao.card.id}
+                  colunaNome={colunaAtual.nome}
+                  corEtapa={colunaAtual.corEtapa ?? colunaAtual.cor}
+                  papelResponsavel={colunaAtual.papelResponsavel}
+                  responsavelNome={licitacao.card.responsavel?.nome ?? null}
+                  itens={checklistItens}
+                  checklistProgresso={licitacao.card.checklistProgresso ?? null}
+                />
               )}
 
-              {licitacao.linkOrigem && (() => {
-                // Converte linkOrigem legado (pncp-contrato:ID) em URL real
-                let href = licitacao.linkOrigem as string;
-                if (href.startsWith("pncp-contrato:")) {
-                  const id = href.replace("pncp-contrato:", "");
-                  href = `https://pncp.gov.br/app/editais/${id}`;
-                }
-                return (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" /> Abrir edital original
-                  </a>
-                );
-              })()}
+              {/* ── Bloco 2: Ações da Etapa ou Resumo Executivo ── */}
+              {mostrarResumoExecutivo ? (
+                <ResumoExecutivo licitacaoId={licitacaoId} />
+              ) : (
+                <BlocoAcoesEtapa
+                  licitacaoId={licitacaoId}
+                  acoesPadrao={acoesPadrao}
+                  onIaResult={handleIaResult}
+                  onAnaliseProfunda={() => {/* scroll handled by collapsible section */}}
+                  onChecarHabilitacao={() => {/* future */}}
+                />
+              )}
 
-              <section>
-                <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                  Dados da Licitação
-                </h3>
+              {/* ── Bloco 3: Avançar / Voltar / Descartar ── */}
+              {licitacao.card && colunaAtual && (
+                <BlocoAvancar
+                  cardId={licitacao.card.id}
+                  licitacaoId={licitacaoId}
+                  colunaAtualId={colunaAtual.id}
+                  colunas={colunas}
+                />
+              )}
+
+              {/* ── Separador entre blocos e seções colapsadas ── */}
+              <hr className="border-slate-200" />
+
+              {/* ── Seções colapsáveis (todas fechadas por padrão) ── */}
+
+              <SecaoColapsavel titulo="Dados da licitação">
                 <CampoEditavel
                   label="Título"
                   valor={licitacao.titulo}
@@ -520,15 +500,17 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                   onSave={(v: string) => updateMutation.mutate({ observacoes: v })}
                   multiline
                 />
+              </SecaoColapsavel>
+
+              <SecaoColapsavel titulo="Análise Profunda">
+                <AnaliseProfunda licitacaoId={licitacaoId} />
+              </SecaoColapsavel>
+
+              <SecaoColapsavel titulo="Score / Parecer">
                 <ResumoScoreParecer licitacaoId={licitacaoId} />
-              </section>
+              </SecaoColapsavel>
 
-              {/* ── Análise Profunda ── */}
-              <AnaliseProfunda licitacaoId={licitacaoId} />
-
-              {/* ── Assistente IA ── */}
-              <section>
-                <h3 className="text-sm font-semibold text-slate-700 mb-2">Assistente IA</h3>
+              <SecaoColapsavel titulo="Assistente IA">
                 <div className="flex flex-wrap gap-2">
                   <BotaoIa
                     licitacaoId={licitacaoId}
@@ -552,56 +534,52 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                     disabled={!!iaPreview}
                   />
                 </div>
-              </section>
 
-              {/* ── Preview da IA (aguardando gravar/descartar) ── */}
-              {iaPreview && (
-                <section className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-amber-800">
-                      Resultado da IA — Salvar ou descartar?
-                    </h3>
+                {/* Preview da IA (aguardando gravar/descartar) */}
+                {iaPreview && (
+                  <div className="mt-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-amber-800">
+                        Resultado da IA — Salvar ou descartar?
+                      </h3>
+                    </div>
+
+                    <RespostaIaPreview
+                      tipo={iaPreview.tipo}
+                      resposta={iaPreview.resposta}
+                      respostaJson={iaPreview.respostaJson}
+                      modelo={iaPreview.modelo}
+                    />
+
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => gravarIaMutation.mutate(iaPreview)}
+                        disabled={gravarIaMutation.isPending}
+                        className="gap-1.5"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        {gravarIaMutation.isPending
+                          ? "Gravando..."
+                          : "Gravar no histórico"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={descartarPreview}
+                        disabled={gravarIaMutation.isPending}
+                        className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Descartar
+                      </Button>
+                    </div>
                   </div>
+                )}
+              </SecaoColapsavel>
 
-                  <RespostaIaPreview
-                    tipo={iaPreview.tipo}
-                    resposta={iaPreview.resposta}
-                    respostaJson={iaPreview.respostaJson}
-                    modelo={iaPreview.modelo}
-                  />
-
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => gravarIaMutation.mutate(iaPreview)}
-                      disabled={gravarIaMutation.isPending}
-                      className="gap-1.5"
-                    >
-                      <Save className="h-3.5 w-3.5" />
-                      {gravarIaMutation.isPending
-                        ? "Gravando..."
-                        : "Gravar no histórico"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={descartarPreview}
-                      disabled={gravarIaMutation.isPending}
-                      className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Descartar
-                    </Button>
-                  </div>
-                </section>
-              )}
-
-              {/* ── Histórico de análises gravadas ── */}
               {licitacao.acoesIa && licitacao.acoesIa.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                    Análises gravadas
-                  </h3>
+                <SecaoColapsavel titulo="Análises gravadas">
                   <div className="space-y-3">
                     {licitacao.acoesIa
                       .filter((a: AcaoIa) => a.status === "concluido")
@@ -609,26 +587,22 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                         <RespostaIa key={a.id} acao={a} />
                       ))}
                   </div>
-                </section>
+                </SecaoColapsavel>
               )}
 
               {licitacao.movimentacoes && licitacao.movimentacoes.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Histórico</h3>
+                <SecaoColapsavel titulo="Histórico de movimentos">
                   <TimelineMovimentos movimentacoes={licitacao.movimentacoes} />
-                </section>
+                </SecaoColapsavel>
               )}
 
               {licitacao.dadosExtraidos &&
                 Object.keys(licitacao.dadosExtraidos).length > 0 && (
-                  <section>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                      Dados Extraídos (IA)
-                    </h3>
+                  <SecaoColapsavel titulo="Dados Extraídos">
                     <pre className="rounded bg-slate-50 p-3 text-xs overflow-x-auto">
                       {JSON.stringify(licitacao.dadosExtraidos, null, 2)}
                     </pre>
-                  </section>
+                  </SecaoColapsavel>
                 )}
             </div>
           ) : (
