@@ -426,7 +426,7 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                   colunaNome={colunaAtual.nome}
                   corEtapa={colunaAtual.corEtapa ?? colunaAtual.cor}
                   papelResponsavel={colunaAtual.papelResponsavel}
-                  responsavelNome={licitacao.card.responsavel?.nome ?? null}
+                  responsavelNome={licitacao.card.responsavel?.name ?? null}
                   itens={checklistItens}
                   checklistProgresso={licitacao.card.checklistProgresso ?? null}
                 />
