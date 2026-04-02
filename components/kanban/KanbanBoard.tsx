@@ -14,8 +14,9 @@ import {
   closestCorners,
 } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
-import { KanbanCard, KanbanCardOverlay } from "./KanbanCard";
+import { KanbanCardOverlay, type CardData } from "./KanbanCard";
 import { FilterBar, type Filtros } from "./FilterBar";
+import { getChecklistItensColuna } from "@/lib/kanban/checklist-por-coluna";
 import { LicitacaoDrawer } from "@/components/detalhe/LicitacaoDrawer";
 import {
   Dialog,
@@ -29,26 +30,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-
-interface CardData {
-  id: string;
-  licitacao: {
-    id: string;
-    numero: number;
-    titulo: string;
-    orgao: string | null;
-    uf: string | null;
-    valorEstimado: number | null;
-    dataSessao: string | null;
-    dataPublicacao: string | null;
-    modalidade: string | null;
-    scorePreliminar: number | null;
-    classificacaoPreliminar: string | null;
-    fonte: { tipo: string; nome: string } | null;
-  };
-  urgente: boolean;
-  responsavel: { name: string | null } | null;
-}
 
 interface ColunaData {
   id: string;
@@ -163,7 +144,7 @@ export function KanbanBoard() {
     const lic = Array.isArray(licitacoes) ? licitacoes : [];
     const buscaLower = filtros.busca.toLowerCase();
 
-    return cols.map((col: { id: string; nome: string; cor: string; tipo?: string }) => ({
+    return cols.map((col: { id: string; nome: string; cor: string; tipo?: string; corEtapa?: string | null }) => ({
       ...col,
       cards: lic
         .filter((l: { card: { colunaId: string } | null }) => l.card?.colunaId === col.id)
@@ -187,25 +168,46 @@ export function KanbanBoard() {
 
           return true;
         })
-        .map((l: any) => ({
-          id: l.card!.id,
-          licitacao: {
-            id: l.id,
-            numero: l.numero,
-            titulo: l.titulo,
-            orgao: l.orgao,
-            uf: l.uf,
-            valorEstimado: l.valorEstimado,
-            dataSessao: l.dataSessao,
-            dataPublicacao: l.dataPublicacao,
-            modalidade: l.modalidade,
-            scorePreliminar: l.scorePreliminar ?? null,
-            classificacaoPreliminar: l.classificacaoPreliminar ?? null,
-            fonte: l.fonte ? { tipo: l.fonte.tipo, nome: l.fonte.nome } : null,
-          },
-          urgente: l.card!.urgente,
-          responsavel: l.card!.responsavel,
-        })),
+        .map((l: any) => {
+          // Calculate checklist progress for this column
+          const checklistItens = getChecklistItensColuna(col.nome, l.card?.checklistPorColuna);
+          const checklistProgresso = l.card?.checklistProgresso ?? null;
+
+          let progresso: { feitos: number; total: number } | null = null;
+          if (checklistItens.length > 0) {
+            const progressoColuna = (checklistProgresso as Record<string, Record<string, boolean>> | null)?.[col.nome] ?? {};
+            const feitos = Object.values(progressoColuna).filter(Boolean).length;
+            progresso = { feitos, total: checklistItens.length };
+          }
+
+          return {
+            id: l.card!.id,
+            licitacao: {
+              id: l.id,
+              numero: l.numero,
+              titulo: l.titulo,
+              orgao: l.orgao,
+              uf: l.uf,
+              valorEstimado: l.valorEstimado,
+              dataSessao: l.dataSessao,
+              dataPublicacao: l.dataPublicacao,
+              modalidade: l.modalidade,
+              scorePreliminar: l.scorePreliminar ?? null,
+              classificacaoPreliminar: l.classificacaoPreliminar ?? null,
+              fonte: l.fonte ? { tipo: l.fonte.tipo, nome: l.fonte.nome } : null,
+              score: l.score ?? null,
+            },
+            urgente: l.card!.urgente,
+            responsavel: l.card!.responsavel,
+            checklistProgresso,
+            coluna: {
+              nome: col.nome,
+              corEtapa: col.corEtapa ?? null,
+              cor: col.cor,
+            },
+            progresso,
+          };
+        }),
     })) as ColunaData[];
   }, [colunas, licitacoes, filtros]);
 

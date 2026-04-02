@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 
-interface CardData {
+export interface CardData {
   id: string;
   licitacao: {
     id: string;
@@ -21,9 +21,17 @@ interface CardData {
     scorePreliminar: number | null;
     classificacaoPreliminar: string | null;
     fonte: { tipo: string; nome: string } | null;
+    score: { scoreFinal: number; classificacao: string } | null;
   };
   urgente: boolean;
   responsavel: { name: string | null } | null;
+  checklistProgresso: Record<string, Record<string, boolean>> | null;
+  coluna: {
+    nome: string;
+    corEtapa: string | null;
+    cor: string;
+  };
+  progresso: { feitos: number; total: number } | null;
 }
 
 interface KanbanCardProps {
@@ -70,7 +78,7 @@ function ClassificacaoBadge({
   return (
     <span
       className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ring-1 ${cor}`}
-      title={`Score preliminar: ${score ?? "?"}%`}
+      title={`Score: ${score ?? "?"}%`}
     >
       {classificacao}
       {score != null && (
@@ -78,6 +86,78 @@ function ClassificacaoBadge({
       )}
     </span>
   );
+}
+
+function AvatarResponsavel({ nome }: { nome: string | null }) {
+  if (!nome) {
+    return (
+      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[9px] text-slate-400 font-bold">
+        ?
+      </div>
+    );
+  }
+  const iniciais = nome
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div
+      className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[9px] text-white font-bold"
+      title={nome}
+    >
+      {iniciais}
+    </div>
+  );
+}
+
+function PrazoContagem({ dataSessao }: { dataSessao: string | null }) {
+  if (!dataSessao) return null;
+  const sessao = new Date(dataSessao);
+  const hoje = new Date();
+  const diffMs = sessao.getTime() - hoje.getTime();
+  const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDias < 0) {
+    return <span className="text-[10px] font-semibold text-red-600">Encerrada</span>;
+  }
+  if (diffDias === 0) {
+    return <span className="text-[10px] font-semibold text-red-600">HOJE</span>;
+  }
+  if (diffDias === 1) {
+    return <span className="text-[10px] font-semibold text-red-600">AMANHA</span>;
+  }
+  if (diffDias <= 5) {
+    return <span className="text-[10px] font-semibold text-amber-600">{diffDias} dias</span>;
+  }
+  return <span className="text-[10px] text-slate-400">{diffDias}d</span>;
+}
+
+function BarraProgresso({ feitos, total, cor }: { feitos: number; total: number; cor: string }) {
+  if (total === 0) return null;
+  const pct = Math.round((feitos / total) * 100);
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <div className="flex-1 h-1 rounded-full bg-slate-200 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: cor }}
+        />
+      </div>
+      <span className="text-[9px] text-slate-400">{feitos}/{total}</span>
+    </div>
+  );
+}
+
+/** Verifica se dataSessao esta proxima (<=1 dia) ou passou */
+function isDataUrgente(dataSessao: string | null): boolean {
+  if (!dataSessao) return false;
+  const sessao = new Date(dataSessao);
+  const hoje = new Date();
+  const diffMs = sessao.getTime() - hoje.getTime();
+  const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return diffDias <= 1;
 }
 
 /** Card arrastavel dentro da coluna */
@@ -93,11 +173,21 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
     isDragging,
   } = useSortable({ id: card.id });
 
+  const borderColor = card.coluna?.corEtapa ?? card.coluna?.cor ?? "#e2e8f0";
+  const dataProxima = isDataUrgente(card.licitacao.dataSessao);
+  const semResponsavel = !card.responsavel?.name;
+
+  // Prefer score final over score preliminar
+  const scoreData = card.licitacao.score;
+  const classificacaoExibir = scoreData?.classificacao ?? card.licitacao.classificacaoPreliminar;
+  const scoreExibir = scoreData?.scoreFinal ?? card.licitacao.scorePreliminar;
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.3 : semResponsavel ? 0.7 : 1,
     zIndex: isDragging ? 50 : undefined,
+    borderLeft: `3px solid ${borderColor}`,
   };
 
   return (
@@ -121,23 +211,28 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
       }}
       className={`cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition-shadow touch-none
         ${isDragging ? "cursor-grabbing shadow-lg ring-2 ring-blue-300" : "hover:shadow-md"}
+        ${dataProxima ? "border-red-400" : ""}
       `}
     >
-      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
-          #{card.licitacao.numero}
-        </span>
-        <FonteBadge fonte={card.licitacao.fonte} />
-        {card.urgente && (
-          <Badge variant="destructive" className="shrink-0 text-[10px]">
-            Urgente
-          </Badge>
-        )}
-        <ClassificacaoBadge
-          classificacao={card.licitacao.classificacaoPreliminar}
-          score={card.licitacao.scorePreliminar}
-        />
+      <div className="flex items-center justify-between gap-1.5 mb-1">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+            #{card.licitacao.numero}
+          </span>
+          <FonteBadge fonte={card.licitacao.fonte} />
+          {card.urgente && (
+            <Badge variant="destructive" className="shrink-0 text-[10px]">
+              Urgente
+            </Badge>
+          )}
+          <ClassificacaoBadge
+            classificacao={classificacaoExibir}
+            score={scoreExibir}
+          />
+        </div>
+        <AvatarResponsavel nome={card.responsavel?.name ?? null} />
       </div>
+
       <h3 className="text-sm font-medium leading-tight line-clamp-2">
         {card.licitacao.titulo}
       </h3>
@@ -161,38 +256,39 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
         )}
       </div>
 
+      {card.progresso && (
+        <BarraProgresso
+          feitos={card.progresso.feitos}
+          total={card.progresso.total}
+          cor={borderColor}
+        />
+      )}
+
       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
         <span>{formatCurrency(card.licitacao.valorEstimado)}</span>
-        {(card.licitacao.dataSessao || card.licitacao.dataPublicacao) && (
-          <span>
-            {card.licitacao.dataSessao
-              ? `Sessao: ${formatDate(card.licitacao.dataSessao)}`
-              : `Publicacao: ${formatDate(card.licitacao.dataPublicacao)}`}
-          </span>
-        )}
+        <PrazoContagem dataSessao={card.licitacao.dataSessao} />
       </div>
-
-      {card.responsavel?.name && (
-        <p className="mt-1.5 text-[11px] text-blue-600">
-          {card.responsavel.name}
-        </p>
-      )}
     </div>
   );
 }
 
 /** Versao do card usada no DragOverlay (visual de arrastar) */
 export function KanbanCardOverlay({ card }: { card: CardData }) {
+  const borderColor = card.coluna?.corEtapa ?? card.coluna?.cor ?? "#e2e8f0";
+
   return (
-    <div className="w-64 rounded-lg border-2 border-blue-400 bg-white p-3 shadow-xl rotate-2 scale-105">
+    <div
+      className="w-64 rounded-lg border-2 border-blue-400 bg-white p-3 shadow-xl rotate-2 scale-105"
+      style={{ borderLeft: `3px solid ${borderColor}` }}
+    >
       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
           #{card.licitacao.numero}
         </span>
         <FonteBadge fonte={card.licitacao.fonte} />
         <ClassificacaoBadge
-          classificacao={card.licitacao.classificacaoPreliminar}
-          score={card.licitacao.scorePreliminar}
+          classificacao={card.licitacao.score?.classificacao ?? card.licitacao.classificacaoPreliminar}
+          score={card.licitacao.score?.scoreFinal ?? card.licitacao.scorePreliminar}
         />
       </div>
       <h3 className="mt-1 text-sm font-medium leading-tight line-clamp-2">

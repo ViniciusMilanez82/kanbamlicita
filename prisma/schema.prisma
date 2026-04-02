@@ -339,6 +339,7 @@ model KanbanCard {
   responsavelId String? @map("responsavel_id")
   urgente      Boolean  @default(false)
   notas        String?  @db.Text
+  checklistProgresso Json @default("{}") @map("checklist_progresso")
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 

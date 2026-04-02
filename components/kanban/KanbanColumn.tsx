@@ -2,27 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { KanbanCard } from "./KanbanCard";
-
-interface CardData {
-  id: string;
-  licitacao: {
-    id: string;
-    numero: number;
-    titulo: string;
-    orgao: string | null;
-    uf: string | null;
-    valorEstimado: number | null;
-    dataSessao: string | null;
-    dataPublicacao: string | null;
-    modalidade: string | null;
-    scorePreliminar: number | null;
-    classificacaoPreliminar: string | null;
-    fonte: { tipo: string; nome: string } | null;
-  };
-  urgente: boolean;
-  responsavel: { name: string | null } | null;
-}
+import { KanbanCard, type CardData } from "./KanbanCard";
 
 interface ColumnData {
   id: string;
