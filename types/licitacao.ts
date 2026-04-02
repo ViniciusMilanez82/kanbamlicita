@@ -65,6 +65,9 @@ export interface KanbanColuna {
   cor: string;
   tipo: string;
   ativo: boolean;
+  acoesPadrao: string[];
+  corEtapa: string | null;
+  papelResponsavel: string | null;
 }
 
 export interface KanbanMetricas {
