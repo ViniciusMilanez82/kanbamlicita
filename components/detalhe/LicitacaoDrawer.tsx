@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { AcaoIa } from "@/types/licitacao";
+import { AnaliseProfunda } from "./AnaliseProfunda";
 
 interface LicitacaoDrawerProps {
   licitacaoId: string;
@@ -521,6 +522,9 @@ export function LicitacaoDrawer({ licitacaoId, onClose }: LicitacaoDrawerProps) 
                 />
                 <ResumoScoreParecer licitacaoId={licitacaoId} />
               </section>
+
+              {/* ── Análise Profunda ── */}
+              <AnaliseProfunda licitacaoId={licitacaoId} />
 
               {/* ── Assistente IA ── */}
               <section>

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import type { PncpContratoRaw } from "@/lib/pncp/types";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 import { avaliarEPersistir } from "@/lib/aderencia/pipeline-hook";
+import { executarAnaliseProfunda } from "@/lib/analise-profunda/pipeline";
 
 function idPncp(c: PncpContratoRaw): string {
   const id = c.numeroControlePNCP || c.numeroControlePncpCompra;
@@ -95,6 +96,9 @@ export async function POST(req: Request) {
 
   // Avaliar aderencia automatica
   avaliarEPersistir(licitacao.id).catch(() => {});
+
+  // Análise profunda automática (busca detalhes, baixa docs, analisa com IA)
+  executarAnaliseProfunda(licitacao.id).catch(() => {});
 
   return NextResponse.json(licitacao, { status: 201 });
 }
