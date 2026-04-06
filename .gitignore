@@ -53,3 +53,9 @@ deploy/postgres.env
 # uploads de documentos (manter apenas .gitkeep)
 /uploads/*
 !/uploads/.gitkeep
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Superpowers
+.superpowers/
