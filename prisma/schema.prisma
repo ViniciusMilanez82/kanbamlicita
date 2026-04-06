@@ -328,6 +328,8 @@ model Licitacao {
   notificacoes  Notificacao[]
   documentos    Documento[]
   resultado     ResultadoLicitacao?
+  checklistEdital  ChecklistEdital[]
+  decisaoGoNoGo    DecisaoGoNoGo?
 
   @@map("licitacoes")
 }
@@ -533,6 +535,45 @@ model ItemResultado {
   @@map("itens_resultado")
 }
 
+// ==================== CHECKLIST POR EDITAL + GO/NO-GO (MÓDULO A) ====================
+
+model ChecklistEdital {
+  id                  String   @id @default(cuid())
+  licitacaoId         String   @map("licitacao_id")
+  nome                String
+  categoria           CategoriaHabilitacao
+  obrigatorio         Boolean  @default(true)
+  status              String   @default("pendente") // pendente, atendido, nao_atendido, parcial
+  documentoEmpresaId  String?  @map("documento_empresa_id")
+  observacoes         String?  @db.Text
+  ordem               Int      @default(0)
+  criadoEm            DateTime @default(now()) @map("criado_em")
+  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
+
+  licitacao        Licitacao         @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  documentoEmpresa DocumentoEmpresa? @relation(fields: [documentoEmpresaId], references: [id])
+
+  @@map("checklist_edital")
+}
+
+model DecisaoGoNoGo {
+  id                        String   @id @default(cuid())
+  licitacaoId               String   @unique @map("licitacao_id")
+  decisao                   String   // go, no_go, condicional
+  scoreNoMomento            Float?   @map("score_no_momento")
+  checklistPronto           Boolean  @default(false) @map("checklist_pronto")
+  valorEstimadoCapturavel   Decimal? @map("valor_estimado_capturavel") @db.Decimal(15, 2)
+  riscosIdentificados       Json?    @map("riscos_identificados")
+  justificativa             String?  @db.Text
+  decididoPorId             String?  @map("decidido_por_id")
+  criadoEm                  DateTime @default(now()) @map("criado_em")
+
+  licitacao   Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  decididoPor User?     @relation("decisaoGoNoGo", fields: [decididoPorId], references: [id])
+
+  @@map("decisoes_go_nogo")
+}
+
 // ==================== NOTIFICAÇÕES ====================
 
 model Notificacao {
@@ -616,6 +657,7 @@ model DocumentoEmpresa {
   versaoAnterior     DocumentoEmpresa?  @relation("versoes", fields: [versaoAnteriorId], references: [id])
   versoesPosteriores DocumentoEmpresa[] @relation("versoes")
   auditorias         AuditoriaDocumento[]
+  checklistEdital    ChecklistEdital[]
 
   @@index([cnpj, categoria])
   @@index([dataValidade])
@@ -676,6 +718,7 @@ model User {
   documentosEmpresa      DocumentoEmpresa[]      @relation("docEmpresaEnviadoPor")
   auditoriasDocumento    AuditoriaDocumento[]    @relation("auditDocRealizadoPor")
   resultadosRegistrados  ResultadoLicitacao[] @relation("resultadoRegistradoPor")
+  decisoesGoNoGo         DecisaoGoNoGo[]       @relation("decisaoGoNoGo")
 
   @@map("usuarios")
 }

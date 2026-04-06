@@ -6,6 +6,7 @@ import { LicitacaoSidebar } from "@/components/licitacao/LicitacaoSidebar";
 import { AnaliseTab } from "@/components/licitacao/AnaliseTab";
 import { ScoreTab } from "@/components/licitacao/ScoreTab";
 import { ParecerTab } from "@/components/licitacao/ParecerTab";
+import { HabilitacaoTab } from "@/components/licitacao/HabilitacaoTab";
 import { DocumentosTab } from "@/components/licitacao/DocumentosTab";
 import { ResultadoTab } from "@/components/licitacao/ResultadoTab";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ const TABS = [
   { id: "analise", label: "Análise" },
   { id: "score", label: "Score" },
   { id: "parecer", label: "Parecer" },
+  { id: "habilitacao", label: "Habilitação" },
   { id: "documentos", label: "Documentos" },
   { id: "resultado", label: "Resultado" },
 ];
@@ -89,6 +91,7 @@ export function LicitacaoDetailClient({ licitacao }: { licitacao: LicitacaoData 
             classificacaoScore={scoreResumo?.classificacao}
           />
         )}
+        {tab === "habilitacao" && <HabilitacaoTab licitacaoId={licitacao.id} />}
         {tab === "documentos" && (
           <DocumentosTab licitacaoId={licitacao.id} />
         )}

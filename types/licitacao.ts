@@ -107,3 +107,35 @@ export interface ResultadoLicitacao {
   criadoEm: string;
   atualizadoEm: string;
 }
+
+export interface ChecklistEditalItem {
+  id: string;
+  licitacaoId: string;
+  nome: string;
+  categoria: string;
+  obrigatorio: boolean;
+  status: string;
+  documentoEmpresaId: string | null;
+  documentoEmpresa: {
+    id: string;
+    nome: string;
+    status: string;
+    nivelAlerta: string | null;
+    dataValidade: string | null;
+  } | null;
+  observacoes: string | null;
+  ordem: number;
+}
+
+export interface DecisaoGoNoGo {
+  id: string;
+  licitacaoId: string;
+  decisao: string;
+  scoreNoMomento: number | null;
+  checklistPronto: boolean;
+  valorEstimadoCapturavel: string | null;
+  riscosIdentificados: string[] | null;
+  justificativa: string | null;
+  decididoPor: { id: string; name: string | null } | null;
+  criadoEm: string;
+}
