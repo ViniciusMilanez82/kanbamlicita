@@ -130,14 +130,15 @@ export async function POST(req: Request) {
 /*  Classificação e enriquecimento dos itens PNCP                      */
 /* ------------------------------------------------------------------ */
 
-/** Tipos de documento considerados oportunidades abertas para participação */
-const TIPOS_OPORTUNIDADE = new Set(["Edital", "Aviso"]);
+/** Tipos claramente já firmados — só estes são descartados */
+const TIPOS_REFERENCIA = new Set(["Contrato", "Empenho", "Ata", "Aditivo"]);
 
 /**
  * Detecta o tipo de documento e classifica como oportunidade ou referência.
  *
- * - "oportunidade" = Editais e Avisos (abertos para participação)
- * - "referencia"   = Contratos, Empenhos, Atas, Aditivos (já firmados — inteligência de mercado)
+ * Lógica invertida: tudo é oportunidade EXCETO o que for claramente
+ * um contrato, empenho, ata ou aditivo já firmado.
+ * Isso evita descartar itens que não têm indicador claro de tipo.
  */
 function classificarItem(item: {
   document_type?: string;
@@ -147,9 +148,9 @@ function classificarItem(item: {
   item_url?: string;
 }): { tipoDocumento: string; situacao: PncpSituacao } {
   const tipoDocumento = detectarTipoDocumento(item);
-  const situacao: PncpSituacao = TIPOS_OPORTUNIDADE.has(tipoDocumento)
-    ? "oportunidade"
-    : "referencia";
+  const situacao: PncpSituacao = TIPOS_REFERENCIA.has(tipoDocumento)
+    ? "referencia"
+    : "oportunidade";
   return { tipoDocumento, situacao };
 }
 
