@@ -20,7 +20,7 @@ export function searchItemToListaItem(item: PncpSearchItem): PncpContratoListaIt
     categoria: item.tipo_contrato_nome ?? item.tipo_nome ?? "",
     modalidade: item.modalidade_licitacao_nome ?? "",
     esfera: item.esfera_nome ?? "",
-    urlPncp: item.item_url ? `https://pncp.gov.br${item.item_url}` : null,
+    urlPncp: item.item_url ? `https://pncp.gov.br/app${item.item_url}` : null,
     raw: {
       // Mapeia para o formato PncpContratoRaw para compatibilidade com a importação
       numeroControlePNCP: item.numero_controle_pncp,
