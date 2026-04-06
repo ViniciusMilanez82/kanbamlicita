@@ -30,6 +30,7 @@ export type PncpSearchItem = {
   ano: string;
   numero_sequencial: string;
   cancelado: boolean;
+  tem_resultado: boolean;
   /* Campos do fornecedor/empresa contratada (presentes em contratos, atas, empenhos) */
   razaoSocialFornecedor?: string;
   nomeRazaoSocialFornecedor?: string;

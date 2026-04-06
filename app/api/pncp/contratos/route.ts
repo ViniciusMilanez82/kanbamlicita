@@ -123,8 +123,8 @@ async function buscarTermoPncp(params: {
   const itens: ReturnType<typeof searchItemToListaItem>[] = [];
   let totalApi = 0;
 
-  // Busca até 3 páginas por termo para ter itens suficientes
-  const maxPaginas = 3;
+  // Busca mais páginas pois muitos editais já têm resultado e são descartados
+  const maxPaginas = 8;
   const tamApi = 50;
 
   for (let pag = pagina; pag < pagina + maxPaginas; pag++) {
@@ -142,6 +142,9 @@ async function buscarTermoPncp(params: {
       const id = item.numero_controle_pncp ?? item.id;
       if (idsVistos.has(id)) continue;
       idsVistos.add(id);
+
+      // Descartar editais que já têm resultado (alguém já ganhou) ou cancelados
+      if (item.tem_resultado || item.cancelado) continue;
 
       // Filtro de UF no backend
       if (filtrarUf) {
