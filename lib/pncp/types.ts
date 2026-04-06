@@ -32,6 +32,8 @@ export type PncpContratoRaw = {
   tipoContrato?: { id?: number; nome?: string };
 };
 
+export type PncpSituacao = "oportunidade" | "referencia";
+
 export type PncpContratoListaItem = {
   id: string;
   titulo: string;
@@ -46,5 +48,8 @@ export type PncpContratoListaItem = {
   esfera?: string;
   urlPncp?: string | null;
   tipoDocumento?: string;
+  situacao?: PncpSituacao;
+  empresaContratada?: string | null;
+  cnpjContratada?: string | null;
   raw: PncpContratoRaw;
 };

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { buscarContratosPncp } from "@/lib/pncp/client";
+import type { PncpSearchItem } from "@/lib/pncp/client";
 import { searchItemToListaItem, parsePalavrasChave, parseUfsCsv } from "@/lib/pncp/normalize";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
+import type { PncpSituacao } from "@/lib/pncp/types";
 
 /**
  * POST /api/pncp/contratos
@@ -67,11 +69,21 @@ export async function POST(req: Request) {
 
         const normalizado = searchItemToListaItem(item);
 
-        // Detectar tipo do documento
-        const tipoDoc = detectarTipoDocumento(item);
+        // Detectar tipo do documento e situação (oportunidade vs referência)
+        const { tipoDocumento: tipoDoc, situacao } = classificarItem(item);
         tiposEncontrados.add(tipoDoc);
 
-        todosItens.push({ ...normalizado, tipoDocumento: tipoDoc });
+        // Extrair empresa contratada (se houver)
+        const empresaContratada = extrairEmpresaContratada(item);
+        const cnpjContratada = extrairCnpjContratada(item);
+
+        todosItens.push({
+          ...normalizado,
+          tipoDocumento: tipoDoc,
+          situacao,
+          empresaContratada,
+          cnpjContratada,
+        });
       }
 
       // Se já tem itens suficientes
@@ -100,8 +112,35 @@ export async function POST(req: Request) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Classificação e enriquecimento dos itens PNCP                      */
+/* ------------------------------------------------------------------ */
+
+/** Tipos de documento considerados oportunidades abertas para participação */
+const TIPOS_OPORTUNIDADE = new Set(["Edital", "Aviso"]);
+
 /**
- * Detecta o tipo de documento baseado em múltiplos campos do item PNCP
+ * Detecta o tipo de documento e classifica como oportunidade ou referência.
+ *
+ * - "oportunidade" = Editais e Avisos (abertos para participação)
+ * - "referencia"   = Contratos, Empenhos, Atas, Aditivos (já firmados — inteligência de mercado)
+ */
+function classificarItem(item: {
+  document_type?: string;
+  title?: string;
+  tipo_nome?: string;
+  tipo_contrato_nome?: string;
+  item_url?: string;
+}): { tipoDocumento: string; situacao: PncpSituacao } {
+  const tipoDocumento = detectarTipoDocumento(item);
+  const situacao: PncpSituacao = TIPOS_OPORTUNIDADE.has(tipoDocumento)
+    ? "oportunidade"
+    : "referencia";
+  return { tipoDocumento, situacao };
+}
+
+/**
+ * Detecta o tipo de documento baseado em múltiplos campos do item PNCP.
  */
 function detectarTipoDocumento(item: {
   document_type?: string;
@@ -130,4 +169,25 @@ function detectarTipoDocumento(item: {
     return "Contrato";
 
   return docType || "Outro";
+}
+
+/**
+ * Extrai o nome da empresa contratada/fornecedora do item PNCP.
+ * Campos podem variar dependendo do tipo de documento.
+ */
+function extrairEmpresaContratada(item: Partial<PncpSearchItem>): string | null {
+  const nome =
+    item.nomeRazaoSocialFornecedor ??
+    item.razaoSocialFornecedor ??
+    item.nomeFantasiaFornecedor ??
+    null;
+  return nome?.trim() || null;
+}
+
+/**
+ * Extrai o CNPJ da empresa contratada/fornecedora.
+ */
+function extrairCnpjContratada(item: Partial<PncpSearchItem>): string | null {
+  const cnpj = item.cnpjFornecedor ?? item.niFornecedor ?? null;
+  return cnpj?.trim() || null;
 }
