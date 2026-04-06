@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FileText, FolderOpen, LayoutDashboard, Package, Search, Settings } from "lucide-react";
+import { BarChart3, FileText, FolderOpen, LayoutDashboard, Package, Search, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/petronect", label: "Petronect", icon: Search },
   { href: "/catalogo", label: "Catálogo", icon: Package },
   { href: "/documentos-empresa", label: "Habilitação", icon: FolderOpen },
+  { href: "/concorrentes", label: "Concorrentes", icon: Users },
   { href: "/relatorios", label: "Relatórios", icon: FileText },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];

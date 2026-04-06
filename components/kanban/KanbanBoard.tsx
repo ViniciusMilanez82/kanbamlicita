@@ -18,18 +18,11 @@ import { KanbanCardOverlay, type CardData } from "./KanbanCard";
 import { FilterBar, type Filtros } from "./FilterBar";
 import { getChecklistItensColuna } from "@/lib/kanban/checklist-por-coluna";
 import { LicitacaoDrawer } from "@/components/detalhe/LicitacaoDrawer";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { MoverCardModal } from "./MoverCardModal";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
+import type { KanbanColuna } from "@/types/licitacao";
 
 interface ColunaData {
   id: string;
@@ -71,13 +64,13 @@ export function KanbanBoard() {
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
   const isDraggingRef = useRef(false);
 
-  // Modal de motivo (substitui prompt do navegador)
-  const [motivoDialog, setMotivoDialog] = useState<{
+  // Modal de mover card (resultado / motivo)
+  const [moverModal, setMoverModal] = useState<{
     cardId: string;
-    colunaDestinoId: string;
-    colunaNome: string;
+    colunaAtualId: string;
+    licitacaoId: string;
+    destinoInicial: string;
   } | null>(null);
-  const [motivoTexto, setMotivoTexto] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -258,12 +251,20 @@ export function KanbanBoard() {
     );
     if (colunaOrigem?.id === colDestino.id) return;
 
-    if (colDestino.tipo === "final_negativo") {
-      // Abre modal para pedir motivo
-      setMotivoDialog({
+    const nomeLC = colDestino.nome.toLowerCase();
+    const ehResultado = nomeLC.includes("ganh") || nomeLC.includes("perd");
+
+    if (colDestino.tipo === "final_negativo" || ehResultado) {
+      // Encontra a licitacaoId do card
+      const card = colunaOrigem?.cards.find((c) => c.id === cardId);
+      const licitacaoId = card?.licitacao?.id;
+      if (!licitacaoId) return;
+
+      setMoverModal({
         cardId,
-        colunaDestinoId: colDestino.id,
-        colunaNome: colDestino.nome,
+        colunaAtualId: colunaOrigem!.id,
+        licitacaoId,
+        destinoInicial: colDestino.id,
       });
     } else {
       // Move direto com atualização otimista
@@ -277,24 +278,19 @@ export function KanbanBoard() {
     setTimeout(() => { isDraggingRef.current = false; }, 100);
   }
 
-  function confirmarMotivo() {
-    if (!motivoDialog || !motivoTexto.trim()) {
-      toast.error("Informe o motivo para mover o card.");
-      return;
-    }
-    moverOtimista(motivoDialog.cardId, motivoDialog.colunaDestinoId);
+  function handleMoverModalConfirm(colunaDestinoId: string, motivo?: string) {
+    if (!moverModal) return;
+    moverOtimista(moverModal.cardId, colunaDestinoId);
     moverMutation.mutate({
-      cardId: motivoDialog.cardId,
-      colunaDestinoId: motivoDialog.colunaDestinoId,
-      motivo: motivoTexto.trim(),
+      cardId: moverModal.cardId,
+      colunaDestinoId,
+      motivo,
     });
-    setMotivoDialog(null);
-    setMotivoTexto("");
+    setMoverModal(null);
   }
 
-  function cancelarMotivo() {
-    setMotivoDialog(null);
-    setMotivoTexto("");
+  function handleMoverModalClose() {
+    setMoverModal(null);
   }
 
   function handleCardClick(licitacaoId: string) {
@@ -342,33 +338,17 @@ export function KanbanBoard() {
         </DragOverlay>
       </DndContext>
 
-      {/* Modal de motivo (substitui prompt do navegador) */}
-      <Dialog open={!!motivoDialog} onOpenChange={(open) => !open && cancelarMotivo()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Motivo da movimentação</DialogTitle>
-            <DialogDescription>
-              Por que este card está sendo movido para{" "}
-              <strong>{motivoDialog?.colunaNome}</strong>?
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder="Ex: Licitação cancelada pelo órgão, prazo expirado..."
-            value={motivoTexto}
-            onChange={(e) => setMotivoTexto(e.target.value)}
-            rows={3}
-            autoFocus
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelarMotivo}>
-              Cancelar
-            </Button>
-            <Button onClick={confirmarMotivo} disabled={!motivoTexto.trim()}>
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de mover card (com resultado / motivo) */}
+      {moverModal && (
+        <MoverCardModal
+          colunas={colunas as KanbanColuna[]}
+          colunaAtualId={moverModal.colunaAtualId}
+          licitacaoId={moverModal.licitacaoId}
+          destinoInicial={moverModal.destinoInicial}
+          onMover={handleMoverModalConfirm}
+          onClose={handleMoverModalClose}
+        />
+      )}
 
       {drawerLicitacaoId && (
         <LicitacaoDrawer

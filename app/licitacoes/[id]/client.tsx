@@ -7,6 +7,7 @@ import { AnaliseTab } from "@/components/licitacao/AnaliseTab";
 import { ScoreTab } from "@/components/licitacao/ScoreTab";
 import { ParecerTab } from "@/components/licitacao/ParecerTab";
 import { DocumentosTab } from "@/components/licitacao/DocumentosTab";
+import { ResultadoTab } from "@/components/licitacao/ResultadoTab";
 import { useQuery } from "@tanstack/react-query";
 
 type LicitacaoData = {
@@ -30,6 +31,7 @@ const TABS = [
   { id: "score", label: "Score" },
   { id: "parecer", label: "Parecer" },
   { id: "documentos", label: "Documentos" },
+  { id: "resultado", label: "Resultado" },
 ];
 
 export function LicitacaoDetailClient({ licitacao }: { licitacao: LicitacaoData }) {
@@ -89,6 +91,9 @@ export function LicitacaoDetailClient({ licitacao }: { licitacao: LicitacaoData 
         )}
         {tab === "documentos" && (
           <DocumentosTab licitacaoId={licitacao.id} />
+        )}
+        {tab === "resultado" && (
+          <ResultadoTab licitacaoId={licitacao.id} />
         )}
       </main>
     </div>

@@ -77,3 +77,33 @@ export interface KanbanMetricas {
   semResponsavel: number;
   captadasHoje: number;
 }
+
+export interface Concorrente {
+  id: string;
+  nome: string;
+  cnpj: string | null;
+  segmentos: string[];
+  porte: string | null;
+  uf: string | null;
+  observacoes: string | null;
+  ativo: boolean;
+}
+
+export interface ResultadoLicitacao {
+  id: string;
+  licitacaoId: string;
+  resultado: string;
+  empresaVencedoraId: string | null;
+  empresaVencedora: { id: string; nome: string; cnpj: string | null } | null;
+  nomeVencedorExterno: string | null;
+  valorVencedor: string | null;
+  valorNossaProposta: string | null;
+  diferencaPercentual: number | null;
+  criterioJulgamento: string | null;
+  motivoDerrota: string | null;
+  motivoDetalhado: string | null;
+  licoesAprendidas: string | null;
+  registradoPor: { id: string; name: string | null } | null;
+  criadoEm: string;
+  atualizadoEm: string;
+}
