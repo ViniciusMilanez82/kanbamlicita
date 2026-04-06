@@ -8,9 +8,9 @@ import type { PncpSituacao } from "@/lib/pncp/types";
 /**
  * POST /api/pncp/contratos
  *
- * Busca no PNCP sem filtro de tipo — traz tudo (contrato, empenho, ata,
- * edital, aviso, etc). Filtro de UF aplicado no backend.
- * Retorna itens com campo 'tipoDocumento' para filtro no frontend.
+ * Busca no PNCP e retorna SOMENTE oportunidades abertas (editais e avisos).
+ * Contratos, empenhos, atas e aditivos são descartados no backend.
+ * Busca páginas extras da API para compensar itens descartados.
  */
 export async function POST(req: Request) {
   const auth = await getAuthFromRequest(req);
@@ -36,21 +36,22 @@ export async function POST(req: Request) {
   const palavrasChaveTexto = termos.join(" ");
 
   try {
-    // Se filtra por UF, buscar mais páginas para compensar itens descartados
-    const maxPaginas = filtrarUf ? 5 : 1;
+    // Busca mais páginas da API para compensar itens descartados (contratos, empenhos, etc.)
+    const maxPaginas = 8;
     const tamApi = 50; // sempre pedir o máximo da API
 
     const todosItens: ReturnType<typeof searchItemToListaItem>[] = [];
     const idsVistos = new Set<string>();
     let totalApi = 0;
+    let totalDescartados = 0;
     const tiposEncontrados = new Set<string>();
 
     for (let pag = pagina; pag < pagina + maxPaginas; pag++) {
       const res = await buscarContratosPncp({
         palavrasChave: palavrasChaveTexto,
         uf: ufsInput.length > 0 ? ufsInput : undefined,
-        pagina: filtrarUf ? pag : pagina,
-        tamanhoPagina: filtrarUf ? tamApi : tamanhoPagina,
+        pagina: pag,
+        tamanhoPagina: tamApi,
       });
 
       if (pag === pagina) totalApi = res.total;
@@ -67,22 +68,24 @@ export async function POST(req: Request) {
           if (!ufsSet.has(ufItem)) continue;
         }
 
-        const normalizado = searchItemToListaItem(item);
-
-        // Detectar tipo do documento e situação (oportunidade vs referência)
+        // Classificar tipo e situação
         const { tipoDocumento: tipoDoc, situacao } = classificarItem(item);
-        tiposEncontrados.add(tipoDoc);
 
-        // Extrair empresa contratada (se houver)
-        const empresaContratada = extrairEmpresaContratada(item);
-        const cnpjContratada = extrairCnpjContratada(item);
+        // FILTRO PRINCIPAL: descartar tudo que não é oportunidade aberta
+        if (situacao !== "oportunidade") {
+          totalDescartados++;
+          continue;
+        }
+
+        tiposEncontrados.add(tipoDoc);
+        const normalizado = searchItemToListaItem(item);
 
         todosItens.push({
           ...normalizado,
           tipoDocumento: tipoDoc,
           situacao,
-          empresaContratada,
-          cnpjContratada,
+          empresaContratada: null,
+          cnpjContratada: null,
         });
       }
 
@@ -93,17 +96,28 @@ export async function POST(req: Request) {
 
     // Limitar ao tamanho pedido
     const itensRetorno = todosItens.slice(0, tamanhoPagina);
-    const totalPaginas = Math.max(1, Math.ceil(totalApi / tamanhoPagina));
+    // Estimar total de oportunidades (proporção do que vimos)
+    const totalAnalisados = idsVistos.size;
+    const proporcaoOportunidades = totalAnalisados > 0
+      ? todosItens.length / totalAnalisados
+      : 0;
+    const totalEstimadoOportunidades = Math.round(totalApi * proporcaoOportunidades);
+    const totalPaginas = Math.max(1, Math.ceil(totalEstimadoOportunidades / tamanhoPagina));
 
     return NextResponse.json({
       itens: itensRetorno,
-      totalRegistros: totalApi,
+      totalRegistros: totalEstimadoOportunidades,
       totalPaginas,
       numeroPagina: pagina,
       tiposDisponiveis: [...tiposEncontrados].sort(),
       filtrosUsados: {
         ufs: ufsInput,
         palavrasChave: termos,
+      },
+      _debug: {
+        totalApiOriginal: totalApi,
+        descartados: totalDescartados,
+        analisados: totalAnalisados,
       },
     });
   } catch (e) {

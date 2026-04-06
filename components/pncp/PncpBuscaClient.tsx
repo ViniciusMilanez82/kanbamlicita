@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { PNCP_DOCS } from "@/lib/pncp/constants";
 import type { PncpContratoListaItem, PncpPreferenciasSalvas, PncpSituacao } from "@/lib/pncp/types";
 import {
-  BookmarkPlus,
+
   BookOpen,
   CheckCircle2,
   ChevronLeft,
@@ -141,7 +141,6 @@ export function PncpBuscaClient() {
   const [pagina, setPagina] = useState(1);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<string>("");
-  const [filtroSituacao, setFiltroSituacao] = useState<"oportunidade" | "referencia" | "todos">("oportunidade");
   const [importandoId, setImportandoId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -228,29 +227,17 @@ export function PncpBuscaClient() {
     },
   });
 
-  // Contagens por situação
-  const contagemOportunidades = resultado
-    ? resultado.itens.filter((i) => i.situacao === "oportunidade").length
-    : 0;
-  const contagemReferencias = resultado
-    ? resultado.itens.filter((i) => i.situacao === "referencia").length
-    : 0;
-
-  // Filtrar itens por situacao e tipo no frontend
-  const itensFiltradosPorSituacao = resultado
-    ? filtroSituacao === "todos"
-      ? resultado.itens
-      : resultado.itens.filter((i) => i.situacao === filtroSituacao)
+  // Filtrar itens por tipo no frontend
+  const itensFiltrados = resultado
+    ? filtroTipo
+      ? resultado.itens.filter((i) => i.tipoDocumento === filtroTipo)
+      : resultado.itens
     : [];
 
-  const itensFiltrados = filtroTipo
-    ? itensFiltradosPorSituacao.filter((i) => i.tipoDocumento === filtroTipo)
-    : itensFiltradosPorSituacao;
-
-  // Contagem por tipo para os badges de filtro (dentro da situação selecionada)
+  // Contagem por tipo para os badges de filtro
   const contagemPorTipo: Record<string, number> = {};
   if (resultado) {
-    for (const item of itensFiltradosPorSituacao) {
+    for (const item of resultado.itens) {
       const t = item.tipoDocumento ?? "Outro";
       contagemPorTipo[t] = (contagemPorTipo[t] ?? 0) + 1;
     }
@@ -267,8 +254,8 @@ export function PncpBuscaClient() {
           <div>
             <h2 className="text-base font-semibold text-slate-900">Busca no PNCP</h2>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              Pesquise no Portal Nacional de Contratações Públicas. Os resultados incluem
-              contratos, empenhos, atas, editais e outros documentos públicos.
+              Pesquise oportunidades abertas no Portal Nacional de Contratações Públicas.
+              Apenas editais e avisos abertos para participação são exibidos.
             </p>
             <a
               href={PNCP_DOCS.site}
@@ -329,7 +316,6 @@ export function PncpBuscaClient() {
               onClick={() => {
                 setPagina(1);
                 setFiltroTipo("");
-                setFiltroSituacao("oportunidade");
                 setResultado(null);
                 buscarMutation.mutate({ pagina: 1 });
               }}
@@ -369,20 +355,13 @@ export function PncpBuscaClient() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <p className="text-2xl font-bold text-blue-700">{fmtNum(resultado.totalRegistros)}</p>
+                  <p className="text-2xl font-bold text-green-700">{fmtNum(resultado.totalRegistros)}</p>
                   <p className="text-sm text-slate-700">
-                    resultado{resultado.totalRegistros !== 1 && "s"}
+                    oportunidade{resultado.totalRegistros !== 1 && "s"} aberta{resultado.totalRegistros !== 1 && "s"}
                     {resultado.filtrosUsados.palavrasChave.length > 0 &&
                       ` para "${resultado.filtrosUsados.palavrasChave.join(", ")}"`}
                   </p>
                 </div>
-
-                {/* Resumo por situação */}
-                <p className="mt-1 text-xs text-slate-500">
-                  {contagemOportunidades} oportunidade{contagemOportunidades !== 1 ? "s" : ""} aberta{contagemOportunidades !== 1 ? "s" : ""}
-                  {" · "}
-                  {contagemReferencias} contrato{contagemReferencias !== 1 ? "s" : ""}/ata{contagemReferencias !== 1 ? "s" : ""} (referência)
-                </p>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {resultado.filtrosUsados.ufs.length > 0 && (
@@ -425,41 +404,7 @@ export function PncpBuscaClient() {
               )}
             </div>
 
-            {/* Filtro principal: situação (oportunidade vs referência) */}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                onClick={() => { setFiltroSituacao("oportunidade"); setFiltroTipo(""); }}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  filtroSituacao === "oportunidade"
-                    ? "bg-green-600 text-white shadow-sm"
-                    : "bg-white text-green-700 ring-1 ring-green-300 hover:bg-green-50"
-                }`}
-              >
-                Oportunidades abertas ({contagemOportunidades})
-              </button>
-              <button
-                onClick={() => { setFiltroSituacao("referencia"); setFiltroTipo(""); }}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  filtroSituacao === "referencia"
-                    ? "bg-slate-600 text-white shadow-sm"
-                    : "bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                Contratos e atas (referência) ({contagemReferencias})
-              </button>
-              <button
-                onClick={() => { setFiltroSituacao("todos"); setFiltroTipo(""); }}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  filtroSituacao === "todos"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                Todos ({resultado.itens.length})
-              </button>
-            </div>
-
-            {/* Filtros por tipo (secundário) */}
+            {/* Filtros por tipo */}
             {Object.keys(contagemPorTipo).length > 1 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
@@ -470,7 +415,7 @@ export function PncpBuscaClient() {
                       : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  Todos os tipos ({itensFiltradosPorSituacao.length})
+                  Todos ({resultado.itens.length})
                 </button>
                 {Object.entries(contagemPorTipo)
                   .sort(([, a], [, b]) => b - a)
@@ -498,158 +443,102 @@ export function PncpBuscaClient() {
               <p className="mt-3 text-sm font-medium text-slate-700">
                 {filtroTipo
                   ? `Nenhum "${filtroTipo}" encontrado`
-                  : filtroSituacao === "oportunidade"
-                    ? "Nenhuma oportunidade aberta encontrada"
-                    : filtroSituacao === "referencia"
-                      ? "Nenhum contrato ou ata encontrado"
-                      : "Nenhum resultado"}
+                  : "Nenhuma oportunidade aberta encontrada"}
               </p>
               <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
                 {filtroTipo
                   ? "Tente remover o filtro de tipo ou buscar com outras palavras."
-                  : filtroSituacao !== "todos"
-                    ? "Tente ver \"Todos\" ou buscar com outras palavras-chave."
-                    : "Tente outras palavras-chave ou remova os filtros de estado."}
+                  : "Tente outras palavras-chave ou remova os filtros de estado."}
               </p>
             </div>
           )}
 
           <div className="space-y-3">
-            {itensFiltrados.map((row, idx) => {
-              const isOportunidade = row.situacao === "oportunidade";
-              return (
-                <div
-                  key={row.id}
-                  className={`group rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition-all ${
-                    isOportunidade
-                      ? "border-l-4 border-l-green-500 border-slate-200 hover:border-green-300"
-                      : "border-l-4 border-l-slate-300 border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
-                          {(pagina - 1) * (Number(tamanho) || 20) + idx + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-slate-900 leading-snug line-clamp-2">
-                              {row.titulo}
-                            </p>
-                            {row.tipoDocumento && (
-                              <Badge className={`shrink-0 text-[10px] ${TIPO_CORES[row.tipoDocumento] ?? TIPO_CORES.Outro}`}>
-                                {row.tipoDocumento}
-                              </Badge>
-                            )}
-                            {/* Badge de situação */}
-                            {isOportunidade ? (
-                              <Badge className="shrink-0 text-[10px] bg-green-100 text-green-800">
-                                Aberta para participação
-                              </Badge>
-                            ) : (
-                              <Badge className="shrink-0 text-[10px] bg-slate-100 text-slate-600">
-                                Contrato já firmado
-                              </Badge>
-                            )}
-                          </div>
-                          {row.objeto !== row.titulo && row.objeto && (
-                            <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">{row.objeto}</p>
+            {itensFiltrados.map((row, idx) => (
+              <div
+                key={row.id}
+                className="group rounded-xl border border-l-4 border-l-green-500 border-slate-200 bg-white p-4 shadow-sm hover:border-green-300 hover:shadow-md transition-all"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-100 text-[10px] font-bold text-slate-500">
+                        {(pagina - 1) * (Number(tamanho) || 20) + idx + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium text-slate-900 leading-snug line-clamp-2">
+                            {row.titulo}
+                          </p>
+                          {row.tipoDocumento && (
+                            <Badge className={`shrink-0 text-[10px] ${TIPO_CORES[row.tipoDocumento] ?? TIPO_CORES.Outro}`}>
+                              {row.tipoDocumento}
+                            </Badge>
                           )}
                         </div>
-                      </div>
-                      {row.orgao && (
-                        <p className="mt-1.5 ml-7 text-sm text-slate-600">{row.orgao}</p>
-                      )}
-                      {/* Empresa contratada (para referências) */}
-                      {!isOportunidade && row.empresaContratada && (
-                        <p className="mt-1 ml-7 text-sm text-slate-500">
-                          <span className="font-medium text-slate-600">Empresa contratada:</span>{" "}
-                          {row.empresaContratada}
-                          {row.cnpjContratada && (
-                            <span className="ml-1 text-xs text-slate-400">({row.cnpjContratada})</span>
-                          )}
-                        </p>
-                      )}
-                      <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
-                        {row.uf && (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">{row.uf}</span>
-                        )}
-                        {row.municipio && (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{row.municipio}</span>
-                        )}
-                        {row.valorGlobal != null && (
-                          <span className="rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
-                            R$ {row.valorGlobal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
-                        )}
-                        {row.modalidade && (
-                          <span className="rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">{row.modalidade}</span>
-                        )}
-                        {row.dataPublicacao && (
-                          <span className="text-slate-400">
-                            {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
-                          </span>
-                        )}
-                        {row.urlPncp && (
-                          <a
-                            href={row.urlPncp}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
-                          >
-                            Ver no PNCP <ExternalLink className="h-3 w-3" />
-                          </a>
+                        {row.objeto !== row.titulo && row.objeto && (
+                          <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">{row.objeto}</p>
                         )}
                       </div>
                     </div>
-                    {isOportunidade ? (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="shrink-0 gap-1.5"
-                        disabled={importandoId === row.id}
-                        onClick={() =>
-                          importarMutation.mutate({
-                            raw: row.raw,
-                            urlPncp: row.urlPncp,
-                            id: row.id,
-                          })
-                        }
-                      >
-                        {importandoId === row.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        )}
-                        Adicionar
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0 gap-1.5 text-slate-600"
-                        disabled={importandoId === row.id}
-                        onClick={() =>
-                          importarMutation.mutate({
-                            raw: row.raw,
-                            urlPncp: row.urlPncp,
-                            id: row.id,
-                          })
-                        }
-                      >
-                        {importandoId === row.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <BookmarkPlus className="h-3.5 w-3.5" />
-                        )}
-                        Salvar como referência
-                      </Button>
+                    {row.orgao && (
+                      <p className="mt-1.5 ml-7 text-sm text-slate-600">{row.orgao}</p>
                     )}
+                    <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
+                      {row.uf && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">{row.uf}</span>
+                      )}
+                      {row.municipio && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{row.municipio}</span>
+                      )}
+                      {row.valorGlobal != null && (
+                        <span className="rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
+                          R$ {row.valorGlobal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                      {row.modalidade && (
+                        <span className="rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">{row.modalidade}</span>
+                      )}
+                      {row.dataPublicacao && (
+                        <span className="text-slate-400">
+                          {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
+                        </span>
+                      )}
+                      {row.urlPncp && (
+                        <a
+                          href={row.urlPncp}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
+                        >
+                          Ver no PNCP <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="shrink-0 gap-1.5"
+                    disabled={importandoId === row.id}
+                    onClick={() =>
+                      importarMutation.mutate({
+                        raw: row.raw,
+                        urlPncp: row.urlPncp,
+                        id: row.id,
+                      })
+                    }
+                  >
+                    {importandoId === row.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    )}
+                    Adicionar
+                  </Button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Paginação inferior */}
