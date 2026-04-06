@@ -139,3 +139,35 @@ export interface DecisaoGoNoGo {
   decididoPor: { id: string; name: string | null } | null;
   criadoEm: string;
 }
+
+export interface AtestadoTecnico {
+  id: string;
+  documentoEmpresaId: string;
+  documentoEmpresa?: {
+    id: string;
+    nome: string;
+    categoria: string;
+    status: string;
+  } | null;
+  clienteNome: string;
+  clienteCnpj: string | null;
+  descricaoServico: string;
+  tags: string[];
+  valorContrato: string | null;
+  dataInicio: string | null;
+  dataFim: string | null;
+  possuiCat: boolean;
+  numeroCat: string | null;
+  observacoes: string | null;
+  criadoEm: string;
+}
+
+export interface TemplateDeclaracao {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  categoria: string;
+  conteudoHtml: string;
+  variaveis: string[];
+  ativo: boolean;
+}

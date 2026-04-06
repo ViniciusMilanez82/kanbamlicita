@@ -61,7 +61,10 @@ export async function buscarContratosPncp(params: {
   const pagina = Math.max(1, params.pagina);
 
   const url = new URL(PNCP_SEARCH_BASE);
-  url.searchParams.set("tipos_documento", params.tipoDocumento ?? "contrato");
+  // Não filtrar por tipo — busca tudo e o backend classifica/descarta
+  if (params.tipoDocumento) {
+    url.searchParams.set("tipos_documento", params.tipoDocumento);
+  }
   url.searchParams.set("pagina", String(pagina));
   url.searchParams.set("tam_pagina", String(tamanho));
 
