@@ -180,24 +180,32 @@ async function main() {
   });
 
   // ==================== FONTE PETRONECT (SP-B) ====================
-  await prisma.fonteCaptacao.upsert({
-    where: { id: "fonte-petronect-default" },
-    update: {},
-    create: {
-      id: "fonte-petronect-default",
-      nome: "Petronect - Contêineres e Equipamentos",
-      tipo: "petronect",
-      ativo: true,
-      filtros: {
-        palavrasChave: ["contêiner", "container", "equipamento portuário", "reach stacker", "empilhadeira"],
+  // Credenciais devem vir de variáveis de ambiente. Sem elas, a fonte não é criada
+  // — usuário pode configurar manualmente em Configurações → Fontes de Captação.
+  const petronectUser = process.env.PETRONECT_USERNAME;
+  const petronectPass = process.env.PETRONECT_PASSWORD;
+  if (petronectUser && petronectPass) {
+    await prisma.fonteCaptacao.upsert({
+      where: { id: "fonte-petronect-default" },
+      update: {},
+      create: {
+        id: "fonte-petronect-default",
+        nome: "Petronect - Contêineres e Equipamentos",
+        tipo: "petronect",
+        ativo: true,
+        filtros: {
+          palavrasChave: ["contêiner", "container", "equipamento portuário", "reach stacker", "empilhadeira"],
+        },
+        parametros: {
+          username: petronectUser,
+          password: petronectPass,
+        },
+        periodicidade: "12h",
       },
-      parametros: {
-        username: "viniciusmilanez@yahoo.com.br",
-        password: "281001Vin@.",
-      },
-      periodicidade: "12h",
-    },
-  });
+    });
+  } else {
+    console.log("[seed] PETRONECT_USERNAME/PETRONECT_PASSWORD ausentes — fonte Petronect não criada.");
+  }
 
   console.log("Seed Fase 2 concluído!");
 }
