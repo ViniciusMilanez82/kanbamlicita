@@ -32,6 +32,31 @@ interface ColunaData {
   cards: CardData[];
 }
 
+interface LicitacaoListaItem {
+  id: string;
+  numero: string | null;
+  titulo: string;
+  orgao: string | null;
+  uf: string | null;
+  objeto: string | null;
+  valorEstimado: number | string | null;
+  dataSessao: string | null;
+  dataPublicacao: string | null;
+  modalidade: string | null;
+  scorePreliminar: number | null;
+  classificacaoPreliminar: string | null;
+  fonte: { tipo: string; nome: string } | null;
+  score: unknown;
+  card: {
+    id: string;
+    colunaId: string;
+    urgente: boolean;
+    responsavel: { id: string; name: string | null } | null;
+    checklistPorColuna: unknown;
+    checklistProgresso: unknown;
+  } | null;
+}
+
 /** Encontra a coluna de destino — over.id pode ser uma coluna ou um card */
 function resolveDestinoColuna(
   overId: string,
@@ -139,9 +164,9 @@ export function KanbanBoard() {
 
     return cols.map((col: { id: string; nome: string; cor: string; tipo?: string; corEtapa?: string | null }) => ({
       ...col,
-      cards: lic
-        .filter((l: { card: { colunaId: string } | null }) => l.card?.colunaId === col.id)
-        .filter((l: { titulo: string; orgao: string | null; objeto: string | null; uf: string | null; modalidade: string | null; card: { urgente: boolean } }) => {
+      cards: (lic as unknown as LicitacaoListaItem[])
+        .filter((l) => l.card?.colunaId === col.id)
+        .filter((l) => {
           // Busca por texto
           if (filtros.busca &&
             !l.titulo.toLowerCase().includes(buscaLower) &&
@@ -161,7 +186,7 @@ export function KanbanBoard() {
 
           return true;
         })
-        .map((l: any) => {
+        .map((l) => {
           // Calculate checklist progress for this column
           const checklistItens = getChecklistItensColuna(col.nome, l.card?.checklistPorColuna);
           const checklistProgresso = l.card?.checklistProgresso ?? null;
@@ -201,15 +226,15 @@ export function KanbanBoard() {
             progresso,
           };
         }),
-    })) as ColunaData[];
+    })) as unknown as ColunaData[];
   }, [colunas, licitacoes, filtros]);
 
   /** Atualização otimista: move o card localmente no cache */
   const moverOtimista = useCallback(
     (cardId: string, colunaDestinoId: string) => {
-      queryClient.setQueryData(["licitacoes"], (old: any[]) => {
+      queryClient.setQueryData(["licitacoes"], (old: unknown) => {
         if (!Array.isArray(old)) return old;
-        return old.map((l) => {
+        return (old as LicitacaoListaItem[]).map((l) => {
           if (l.card?.id === cardId) {
             return { ...l, card: { ...l.card, colunaId: colunaDestinoId } };
           }

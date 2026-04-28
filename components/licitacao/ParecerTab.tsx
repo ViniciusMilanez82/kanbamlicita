@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,50 +34,55 @@ export function ParecerTab({
     },
   });
 
-  const [form, setForm] = useState({
-    classificacaoFinal: "",
-    prioridadeComercial: "",
-    valeEsforcoComercial: false,
-    recomendacaoFinal: "",
-    resumo: "",
-    oportunidadeDireta: false,
-    oportunidadeIndireta: false,
-    oportunidadeOcultaItemLoteAnexo: false,
-    oportunidadeInexistente: false,
-    riscoFalsoPositivo: false,
-    riscoFalsoNegativoSoTitulo: false,
-    ondeEstaOportunidade: [] as string[],
-    solucoesQueMultiteinerPoderiaOfertar: [] as string[],
-    proximoPasosRecomendado: [] as string[],
-    riscosLimitacoes: [] as string[],
-    evidenciasPrincipais: [] as string[],
-  });
-
-  useEffect(() => {
-    if (parecerData) {
-      const p = parecerData;
-      setForm({
-        classificacaoFinal: (p.classificacaoFinal as string) ?? classificacaoScore ?? "",
-        prioridadeComercial: (p.prioridadeComercial as string) ?? "",
-        valeEsforcoComercial: (p.valeEsforcoComercial as boolean) ?? false,
-        recomendacaoFinal: (p.recomendacaoFinal as string) ?? "",
-        resumo: (p.resumo as string) ?? "",
-        oportunidadeDireta: (p.oportunidadeDireta as boolean) ?? false,
-        oportunidadeIndireta: (p.oportunidadeIndireta as boolean) ?? false,
-        oportunidadeOcultaItemLoteAnexo: (p.oportunidadeOcultaItemLoteAnexo as boolean) ?? false,
-        oportunidadeInexistente: (p.oportunidadeInexistente as boolean) ?? false,
-        riscoFalsoPositivo: (p.riscoFalsoPositivo as boolean) ?? false,
-        riscoFalsoNegativoSoTitulo: (p.riscoFalsoNegativoSoTitulo as boolean) ?? false,
-        ondeEstaOportunidade: Array.isArray(p.ondeEstaOportunidade) ? p.ondeEstaOportunidade as string[] : [],
-        solucoesQueMultiteinerPoderiaOfertar: Array.isArray(p.solucoesQueMultiteinerPoderiaOfertar) ? p.solucoesQueMultiteinerPoderiaOfertar as string[] : [],
-        proximoPasosRecomendado: Array.isArray(p.proximoPasosRecomendado) ? p.proximoPasosRecomendado as string[] : [],
-        riscosLimitacoes: Array.isArray(p.riscosLimitacoes) ? p.riscosLimitacoes as string[] : [],
-        evidenciasPrincipais: Array.isArray(p.evidenciasPrincipais) ? p.evidenciasPrincipais as string[] : [],
-      });
-    } else if (classificacaoScore) {
-      setForm((prev) => ({ ...prev, classificacaoFinal: classificacaoScore }));
+  function buildForm(p: ParecerData, fallbackClass?: string) {
+    if (!p) {
+      return {
+        classificacaoFinal: fallbackClass ?? "",
+        prioridadeComercial: "",
+        valeEsforcoComercial: false,
+        recomendacaoFinal: "",
+        resumo: "",
+        oportunidadeDireta: false,
+        oportunidadeIndireta: false,
+        oportunidadeOcultaItemLoteAnexo: false,
+        oportunidadeInexistente: false,
+        riscoFalsoPositivo: false,
+        riscoFalsoNegativoSoTitulo: false,
+        ondeEstaOportunidade: [] as string[],
+        solucoesQueMultiteinerPoderiaOfertar: [] as string[],
+        proximoPasosRecomendado: [] as string[],
+        riscosLimitacoes: [] as string[],
+        evidenciasPrincipais: [] as string[],
+      };
     }
-  }, [parecerData, classificacaoScore]);
+    return {
+      classificacaoFinal: (p.classificacaoFinal as string) ?? fallbackClass ?? "",
+      prioridadeComercial: (p.prioridadeComercial as string) ?? "",
+      valeEsforcoComercial: (p.valeEsforcoComercial as boolean) ?? false,
+      recomendacaoFinal: (p.recomendacaoFinal as string) ?? "",
+      resumo: (p.resumo as string) ?? "",
+      oportunidadeDireta: (p.oportunidadeDireta as boolean) ?? false,
+      oportunidadeIndireta: (p.oportunidadeIndireta as boolean) ?? false,
+      oportunidadeOcultaItemLoteAnexo: (p.oportunidadeOcultaItemLoteAnexo as boolean) ?? false,
+      oportunidadeInexistente: (p.oportunidadeInexistente as boolean) ?? false,
+      riscoFalsoPositivo: (p.riscoFalsoPositivo as boolean) ?? false,
+      riscoFalsoNegativoSoTitulo: (p.riscoFalsoNegativoSoTitulo as boolean) ?? false,
+      ondeEstaOportunidade: Array.isArray(p.ondeEstaOportunidade) ? (p.ondeEstaOportunidade as string[]) : [],
+      solucoesQueMultiteinerPoderiaOfertar: Array.isArray(p.solucoesQueMultiteinerPoderiaOfertar) ? (p.solucoesQueMultiteinerPoderiaOfertar as string[]) : [],
+      proximoPasosRecomendado: Array.isArray(p.proximoPasosRecomendado) ? (p.proximoPasosRecomendado as string[]) : [],
+      riscosLimitacoes: Array.isArray(p.riscosLimitacoes) ? (p.riscosLimitacoes as string[]) : [],
+      evidenciasPrincipais: Array.isArray(p.evidenciasPrincipais) ? (p.evidenciasPrincipais as string[]) : [],
+    };
+  }
+
+  const [form, setForm] = useState(() => buildForm(null, classificacaoScore));
+  const [seedSource, setSeedSource] = useState<ParecerData | undefined>(undefined);
+
+  // Render-phase reseed when query data arrives or licitação muda — supported by React 19.
+  if (parecerData !== undefined && parecerData !== seedSource) {
+    setSeedSource(parecerData);
+    setForm(buildForm(parecerData, classificacaoScore));
+  }
 
   const salvarMutation = useMutation({
     mutationFn: async () => {

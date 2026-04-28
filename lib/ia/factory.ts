@@ -64,10 +64,10 @@ export async function getIaProvider(): Promise<IaProvider> {
   }
 
   if (cfg.provider === "anthropic") {
-    const { AnthropicProvider } = require("./anthropic");
+    const { AnthropicProvider } = await import("./anthropic");
     instance = new AnthropicProvider(cfg.apiKey, cfg.model);
   } else {
-    const { OpenAiProvider } = require("./openai");
+    const { OpenAiProvider } = await import("./openai");
     instance = new OpenAiProvider(cfg.apiKey, cfg.model);
   }
 

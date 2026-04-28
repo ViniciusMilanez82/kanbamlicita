@@ -113,7 +113,9 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
 
   const [iaFields, setIaFields] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+  const [seededAnalise, setSeededAnalise] = useState<unknown>(undefined);
+  if (data !== undefined && data?.analise !== seededAnalise) {
+    setSeededAnalise(data?.analise);
     if (data?.analise) {
       const a = data.analise;
       setForm({
@@ -135,7 +137,7 @@ export function AnaliseTab({ licitacaoId }: { licitacaoId: string }) {
         oportunidadeEmAnexoTecnico: (a.oportunidadeEmAnexoTecnico as boolean) ?? false,
       });
     }
-  }, [data]);
+  }
 
   const salvarMutation = useMutation({
     mutationFn: async () => {

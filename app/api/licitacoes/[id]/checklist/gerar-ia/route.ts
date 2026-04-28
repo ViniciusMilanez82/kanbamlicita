@@ -69,18 +69,21 @@ Gere a lista de documentos de habilitação necessários.`;
     }
 
     // Validate categories
-    const categoriasValidas = ["juridica", "fiscal", "trabalhista", "tecnica", "economica", "complementar"];
+    const categoriasValidas = ["juridica", "fiscal", "trabalhista", "tecnica", "economica", "complementar"] as const;
+    type CategoriaValida = (typeof categoriasValidas)[number];
+    const isCategoriaValida = (c: string): c is CategoriaValida =>
+      (categoriasValidas as readonly string[]).includes(c);
 
     // Create checklist items
     const created = await db.$transaction(
       itens
-        .filter((item) => item.nome && categoriasValidas.includes(item.categoria))
+        .filter((item) => item.nome && isCategoriaValida(item.categoria))
         .map((item, idx) =>
           db.checklistEdital.create({
             data: {
               licitacaoId: id,
               nome: item.nome,
-              categoria: item.categoria as any,
+              categoria: item.categoria as CategoriaValida,
               obrigatorio: item.obrigatorio ?? true,
               ordem: idx,
             },

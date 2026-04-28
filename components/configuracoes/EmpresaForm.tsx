@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +21,15 @@ export function EmpresaForm() {
     },
   });
 
-  useEffect(() => {
+  const [seededEmpresa, setSeededEmpresa] = useState<unknown>(undefined);
+  if (empresa !== undefined && empresa !== seededEmpresa) {
+    setSeededEmpresa(empresa);
     if (empresa && typeof empresa === "object" && "nome" in empresa) {
-      setNome(empresa.nome ?? "");
-      setDescricao(empresa.descricao ?? "");
-      setSegmento(empresa.segmento ?? "");
+      setNome((empresa as { nome?: string }).nome ?? "");
+      setDescricao((empresa as { descricao?: string }).descricao ?? "");
+      setSegmento((empresa as { segmento?: string }).segmento ?? "");
     }
-  }, [empresa]);
+  }
 
   const mutation = useMutation({
     mutationFn: () =>

@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { buscarContratosPncp } from "@/lib/pncp/client";
-import type { PncpSearchItem } from "@/lib/pncp/client";
 import { searchItemToListaItem, parsePalavrasChave, parseUfsCsv } from "@/lib/pncp/normalize";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
 import type { PncpSituacao } from "@/lib/pncp/types";
+
+type PncpItemNormalizado = ReturnType<typeof searchItemToListaItem> & {
+  tipoDocumento?: string;
+  situacao?: PncpSituacao;
+  dataPublicacao?: string;
+};
 
 /**
  * POST /api/pncp/contratos
@@ -74,8 +79,8 @@ export async function POST(req: Request) {
 
     // Ordenar por data de publicação (mais recente primeiro)
     todosItens.sort((a, b) => {
-      const da = (a as any).dataPublicacao ?? "";
-      const db = (b as any).dataPublicacao ?? "";
+      const da = (a as PncpItemNormalizado).dataPublicacao ?? "";
+      const db = (b as PncpItemNormalizado).dataPublicacao ?? "";
       return db.localeCompare(da);
     });
 
@@ -86,7 +91,8 @@ export async function POST(req: Request) {
     // Tipos encontrados
     const tiposEncontrados = new Set<string>();
     for (const item of itensRetorno) {
-      if ((item as any).tipoDocumento) tiposEncontrados.add((item as any).tipoDocumento);
+      const tipo = (item as PncpItemNormalizado).tipoDocumento;
+      if (tipo) tiposEncontrados.add(tipo);
     }
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,15 +77,16 @@ export function IaConfigForm() {
     },
   });
 
-  useEffect(() => {
-    if (!empresa) return;
-    const cfg = empresa.iaConfig as IaConfig | null;
+  const [seededEmpresa, setSeededEmpresa] = useState<unknown>(undefined);
+  if (empresa !== undefined && empresa !== seededEmpresa) {
+    setSeededEmpresa(empresa);
+    const cfg = empresa?.iaConfig as IaConfig | null | undefined;
     if (cfg) {
       setProvedor(cfg.provedor || "openai");
       setChaveApi(cfg.chaveApi || "");
       setModelo(cfg.modelo || "");
     }
-  }, [empresa]);
+  }
 
   const provedorInfo = PROVEDORES.find((p) => p.id === provedor) ?? PROVEDORES[0];
 

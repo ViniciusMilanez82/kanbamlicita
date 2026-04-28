@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 
@@ -95,7 +95,7 @@ export async function POST(
 // DELETE — excluir documento
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _ctx: { params: Promise<{ id: string }> }
 ) {
   const auth = await getAuthFromRequest(req);
   if (!auth) return naoAutenticado();
@@ -114,8 +114,7 @@ export async function DELETE(
 
   // Remover arquivo do disco (melhor esforço)
   try {
-    const fs = await import("fs/promises");
-    await fs.unlink(path.join(process.cwd(), doc.caminho));
+    await unlink(path.join(process.cwd(), doc.caminho));
   } catch {
     // Arquivo pode já ter sido removido
   }

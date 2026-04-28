@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,12 +143,15 @@ export function PncpBuscaClient() {
   const [filtroTipo, setFiltroTipo] = useState<string>("");
   const [importandoId, setImportandoId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!prefs) return;
-    if (prefs.ufs?.length) setUfsCsv(prefs.ufs.join(", "));
-    if (prefs.palavrasChave?.length) setPalavras(prefs.palavrasChave.join(", "));
-    if (prefs.tamanhoPagina) setTamanho(tamanhoLoteValido(prefs.tamanhoPagina));
-  }, [prefs]);
+  const [prefsApplied, setPrefsApplied] = useState<PncpPreferenciasSalvas | null | undefined>(undefined);
+
+  // Render-phase seed: aplica prefs uma vez quando carregam (e re-aplica se mudarem).
+  if (prefs !== undefined && prefs !== prefsApplied) {
+    setPrefsApplied(prefs);
+    if (prefs?.ufs?.length) setUfsCsv(prefs.ufs.join(", "));
+    if (prefs?.palavrasChave?.length) setPalavras(prefs.palavrasChave.join(", "));
+    if (prefs?.tamanhoPagina) setTamanho(tamanhoLoteValido(prefs.tamanhoPagina));
+  }
 
   const buscarMutation = useMutation({
     mutationFn: async (overrides?: { pagina?: number }) => {

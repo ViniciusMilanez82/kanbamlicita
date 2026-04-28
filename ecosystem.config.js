@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- arquivo CommonJS consumido pelo PM2 */
 const path = require('path')
 
 /** Sempre executa a partir da raiz do projeto (importante para .env e next start). */

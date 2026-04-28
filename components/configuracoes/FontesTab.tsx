@@ -138,7 +138,7 @@ export function FontesTab() {
       {!fontes?.length && (
         <Card>
           <CardContent className="py-8 text-center text-slate-500">
-            Nenhuma fonte configurada. Clique em "Nova fonte" para começar.
+            Nenhuma fonte configurada. Clique em &quot;Nova fonte&quot; para começar.
           </CardContent>
         </Card>
       )}

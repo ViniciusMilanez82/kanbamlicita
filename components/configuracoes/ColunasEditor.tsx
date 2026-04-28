@@ -4,16 +4,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, ArrowUp, ArrowDown, Trash2, Settings2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Trash2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import type { KanbanColuna } from "@/types/licitacao";
-
-const TIPO_LABELS: Record<string, string> = {
-  inicial: "Inicial (entrada)",
-  normal: "Normal",
-  final_positivo: "Final (ganhou)",
-  final_negativo: "Final (perdeu/descartou)",
-};
 
 const ACOES_DISPONIVEIS = [
   { value: "triagem_ia", label: "Triagem IA" },

@@ -4,7 +4,6 @@ import {
   buscarDetalhesPncp,
   listarArquivosPncp,
   baixarArquivoPncp,
-  parseNumeroControle,
 } from "@/lib/pncp/detalhes";
 import {
   SYSTEM_ANALISE_PROFUNDA,
@@ -105,10 +104,7 @@ export async function executarAnaliseProfunda(
       linkOrigem: licitacao.linkOrigem,
     });
     let detalhesPncp: Record<string, unknown> | null = null;
-    let urlItem: string | undefined;
-
-    // Extrair URL do item dos dados extraídos
-    const dados = licitacao.dadosExtraidos as Record<string, unknown> | null;
+    const urlItem: string | undefined = undefined;
 
     if (numeroControle) {
       // ── 2. Buscar detalhes completos no PNCP ──

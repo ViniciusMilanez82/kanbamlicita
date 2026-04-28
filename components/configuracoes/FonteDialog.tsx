@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -50,8 +50,12 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
   const [petronectUsuario, setPetronectUsuario] = useState("");
   const [petronectSenha, setPetronectSenha] = useState("");
 
-  useEffect(() => {
-    if (open && fonte) {
+  // Re-seed quando o dialog abre (ou abre com fonte diferente).
+  const seedKey = open ? `${fonte?.id ?? "new"}` : "closed";
+  const [lastSeedKey, setLastSeedKey] = useState<string | null>(null);
+  if (open && seedKey !== lastSeedKey) {
+    setLastSeedKey(seedKey);
+    if (fonte) {
       setNome(fonte.nome);
       setTipo(fonte.tipo);
       setPeriodicidade(fonte.periodicidade ?? "manual");
@@ -64,7 +68,7 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
       setUrl(String(params.url ?? ""));
       setPetronectUsuario(String(params.username ?? ""));
       setPetronectSenha(String(params.password ?? ""));
-    } else if (open && !fonte) {
+    } else {
       setNome("");
       setTipo("pncp");
       setPeriodicidade("manual");
@@ -76,7 +80,9 @@ export function FonteDialog({ open, onOpenChange, fonte }: Props) {
       setPetronectUsuario("");
       setPetronectSenha("");
     }
-  }, [open, fonte]);
+  } else if (!open && lastSeedKey !== null) {
+    setLastSeedKey(null);
+  }
 
   const mutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {

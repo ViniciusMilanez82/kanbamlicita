@@ -45,8 +45,18 @@ export async function POST(
   // Support batch creation (array) or single item
   const itens = Array.isArray(body) ? body : [body];
 
+  type ChecklistInput = {
+    nome: string;
+    categoria: "juridica" | "fiscal" | "trabalhista" | "tecnica" | "economica" | "complementar";
+    obrigatorio?: boolean;
+    status?: "pendente" | "ok" | "nao_aplica" | "vencido";
+    documentoEmpresaId?: string | null;
+    observacoes?: string | null;
+    ordem?: number;
+  };
+
   const created = await db.$transaction(
-    itens.map((item: any, idx: number) =>
+    (itens as ChecklistInput[]).map((item, idx) =>
       db.checklistEdital.create({
         data: {
           licitacaoId: id,

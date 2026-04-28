@@ -13,7 +13,7 @@ jest.unstable_mockModule("@/lib/db", () => ({
   db: {
     produto: {
       findMany: jest.fn(() => Promise.resolve([{ id: "p1", nome: "Container", descricao: null, categoria: null, palavrasChave: [], ativo: true }])),
-      create: jest.fn((args: any) => Promise.resolve({ id: "p2", ...args.data, ativo: true })),
+      create: jest.fn((args: { data: Record<string, unknown> }) => Promise.resolve({ id: "p2", ...args.data, ativo: true })),
       delete: jest.fn(() => Promise.resolve({ id: "p1" })),
     },
   },

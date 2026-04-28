@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     vencendo,
     vencidos,
     substituidos,
-    porCategoria,
+    _porCategoria,
     porNivelAlerta,
     timeline,
   ] = await Promise.all([

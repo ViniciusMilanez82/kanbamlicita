@@ -104,7 +104,7 @@ export async function buscarDetalhesPncp(
  */
 export async function listarArquivosPncp(
   numeroControle: string,
-  itemUrl?: string
+  _itemUrl?: string
 ): Promise<PncpArquivoInfo[]> {
   const parsed = parseNumeroControle(numeroControle);
   if (!parsed) return [];

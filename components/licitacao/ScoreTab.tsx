@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,63 +46,68 @@ export function ScoreTab({ licitacaoId }: { licitacaoId: string }) {
     },
   });
 
-  const [form, setForm] = useState({
-    scoreFinal: 0,
-    classificacao: "",
-    scoreAderenciaDireta: 0,
-    scoreAderenciaAplicacao: 0,
-    scoreContextoOculto: 0,
-    scoreModeloComercial: 0,
-    scorePotencialEconomico: 0,
-    scoreQualidadeEvidencia: 0,
-    scoreJustificativaResumida: "",
-    // Valor capturavel
-    valorCapturavelEstimado: "",
-    valorCapturavelFaixaMin: "",
-    valorCapturavelFaixaMax: "",
-    valorCapturavelMoeda: "BRL",
-    valorCapturavelNivelConfianca: "",
-    valorCapturavelMetodoEstimativa: "",
-    valorCapturavelJustificativa: "",
-    valorCapturavelObservacao: "",
-    valorCapturavelBaseDocumental: [] as string[],
-    // Falso negativo
-    falsoNegativoExisteRisco: false,
-    falsoNegativoNivelRisco: "",
-    falsoNegativoResumo: "",
-    falsoNegativoMotivos: [] as string[],
-    falsoNegativoTrechosCriticos: [] as string[],
-  });
-
-  useEffect(() => {
-    if (scoreData) {
-      setForm({
-        scoreFinal: Number(scoreData.scoreFinal ?? 0),
-        classificacao: (scoreData.classificacao as string) ?? "",
-        scoreAderenciaDireta: Number(scoreData.scoreAderenciaDireta ?? 0),
-        scoreAderenciaAplicacao: Number(scoreData.scoreAderenciaAplicacao ?? 0),
-        scoreContextoOculto: Number(scoreData.scoreContextoOculto ?? 0),
-        scoreModeloComercial: Number(scoreData.scoreModeloComercial ?? 0),
-        scorePotencialEconomico: Number(scoreData.scorePotencialEconomico ?? 0),
-        scoreQualidadeEvidencia: Number(scoreData.scoreQualidadeEvidencia ?? 0),
-        scoreJustificativaResumida: (scoreData.scoreJustificativaResumida as string) ?? "",
-        valorCapturavelEstimado: scoreData.valorCapturavelEstimado != null ? String(scoreData.valorCapturavelEstimado) : "",
-        valorCapturavelFaixaMin: scoreData.valorCapturavelFaixaMin != null ? String(scoreData.valorCapturavelFaixaMin) : "",
-        valorCapturavelFaixaMax: scoreData.valorCapturavelFaixaMax != null ? String(scoreData.valorCapturavelFaixaMax) : "",
-        valorCapturavelMoeda: (scoreData.valorCapturavelMoeda as string) ?? "BRL",
-        valorCapturavelNivelConfianca: (scoreData.valorCapturavelNivelConfianca as string) ?? "",
-        valorCapturavelMetodoEstimativa: (scoreData.valorCapturavelMetodoEstimativa as string) ?? "",
-        valorCapturavelJustificativa: (scoreData.valorCapturavelJustificativa as string) ?? "",
-        valorCapturavelObservacao: (scoreData.valorCapturavelObservacao as string) ?? "",
-        valorCapturavelBaseDocumental: Array.isArray(scoreData.valorCapturavelBaseDocumental) ? scoreData.valorCapturavelBaseDocumental as string[] : [],
-        falsoNegativoExisteRisco: (scoreData.falsoNegativoExisteRisco as boolean) ?? false,
-        falsoNegativoNivelRisco: (scoreData.falsoNegativoNivelRisco as string) ?? "",
-        falsoNegativoResumo: (scoreData.falsoNegativoResumo as string) ?? "",
-        falsoNegativoMotivos: Array.isArray(scoreData.falsoNegativoMotivos) ? scoreData.falsoNegativoMotivos as string[] : [],
-        falsoNegativoTrechosCriticos: Array.isArray(scoreData.falsoNegativoTrechosCriticos) ? scoreData.falsoNegativoTrechosCriticos as string[] : [],
-      });
+  function buildForm(s: Record<string, unknown> | null) {
+    if (!s) {
+      return {
+        scoreFinal: 0,
+        classificacao: "",
+        scoreAderenciaDireta: 0,
+        scoreAderenciaAplicacao: 0,
+        scoreContextoOculto: 0,
+        scoreModeloComercial: 0,
+        scorePotencialEconomico: 0,
+        scoreQualidadeEvidencia: 0,
+        scoreJustificativaResumida: "",
+        valorCapturavelEstimado: "",
+        valorCapturavelFaixaMin: "",
+        valorCapturavelFaixaMax: "",
+        valorCapturavelMoeda: "BRL",
+        valorCapturavelNivelConfianca: "",
+        valorCapturavelMetodoEstimativa: "",
+        valorCapturavelJustificativa: "",
+        valorCapturavelObservacao: "",
+        valorCapturavelBaseDocumental: [] as string[],
+        falsoNegativoExisteRisco: false,
+        falsoNegativoNivelRisco: "",
+        falsoNegativoResumo: "",
+        falsoNegativoMotivos: [] as string[],
+        falsoNegativoTrechosCriticos: [] as string[],
+      };
     }
-  }, [scoreData]);
+    return {
+      scoreFinal: Number(s.scoreFinal ?? 0),
+      classificacao: (s.classificacao as string) ?? "",
+      scoreAderenciaDireta: Number(s.scoreAderenciaDireta ?? 0),
+      scoreAderenciaAplicacao: Number(s.scoreAderenciaAplicacao ?? 0),
+      scoreContextoOculto: Number(s.scoreContextoOculto ?? 0),
+      scoreModeloComercial: Number(s.scoreModeloComercial ?? 0),
+      scorePotencialEconomico: Number(s.scorePotencialEconomico ?? 0),
+      scoreQualidadeEvidencia: Number(s.scoreQualidadeEvidencia ?? 0),
+      scoreJustificativaResumida: (s.scoreJustificativaResumida as string) ?? "",
+      valorCapturavelEstimado: s.valorCapturavelEstimado != null ? String(s.valorCapturavelEstimado) : "",
+      valorCapturavelFaixaMin: s.valorCapturavelFaixaMin != null ? String(s.valorCapturavelFaixaMin) : "",
+      valorCapturavelFaixaMax: s.valorCapturavelFaixaMax != null ? String(s.valorCapturavelFaixaMax) : "",
+      valorCapturavelMoeda: (s.valorCapturavelMoeda as string) ?? "BRL",
+      valorCapturavelNivelConfianca: (s.valorCapturavelNivelConfianca as string) ?? "",
+      valorCapturavelMetodoEstimativa: (s.valorCapturavelMetodoEstimativa as string) ?? "",
+      valorCapturavelJustificativa: (s.valorCapturavelJustificativa as string) ?? "",
+      valorCapturavelObservacao: (s.valorCapturavelObservacao as string) ?? "",
+      valorCapturavelBaseDocumental: Array.isArray(s.valorCapturavelBaseDocumental) ? (s.valorCapturavelBaseDocumental as string[]) : [],
+      falsoNegativoExisteRisco: (s.falsoNegativoExisteRisco as boolean) ?? false,
+      falsoNegativoNivelRisco: (s.falsoNegativoNivelRisco as string) ?? "",
+      falsoNegativoResumo: (s.falsoNegativoResumo as string) ?? "",
+      falsoNegativoMotivos: Array.isArray(s.falsoNegativoMotivos) ? (s.falsoNegativoMotivos as string[]) : [],
+      falsoNegativoTrechosCriticos: Array.isArray(s.falsoNegativoTrechosCriticos) ? (s.falsoNegativoTrechosCriticos as string[]) : [],
+    };
+  }
+
+  const [form, setForm] = useState(() => buildForm(null));
+  const [seedSource, setSeedSource] = useState<Record<string, unknown> | null | undefined>(undefined);
+
+  if (scoreData !== undefined && scoreData !== seedSource) {
+    setSeedSource(scoreData);
+    setForm(buildForm(scoreData));
+  }
 
   const calcularMutation = useMutation({
     mutationFn: async () => {

@@ -198,7 +198,7 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
       {...listeners}
       onPointerDown={(e) => {
         pointerStart.current = { x: e.clientX, y: e.clientY };
-        listeners?.onPointerDown?.(e as any);
+        listeners?.onPointerDown?.(e);
       }}
       onPointerUp={(e) => {
         if (!pointerStart.current) return;

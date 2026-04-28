@@ -13,7 +13,7 @@ jest.unstable_mockModule("@/lib/db", () => ({
   db: {
     empresa: {
       findUnique: jest.fn(() => Promise.resolve({ id: "default", nome: "Test", descricao: null, segmento: null })),
-      upsert: jest.fn((args: any) => Promise.resolve({ id: "default", ...args.update })),
+      upsert: jest.fn((args: { update: Record<string, unknown> }) => Promise.resolve({ id: "default", ...args.update })),
     },
   },
 }));

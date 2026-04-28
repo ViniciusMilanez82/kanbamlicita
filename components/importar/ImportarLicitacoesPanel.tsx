@@ -68,6 +68,8 @@ export function ImportarLicitacoesPanel() {
   useEffect(() => {
     if (!fonteSelecionada?.id) return
     setFiltros(configToPncpForm(fonteSelecionada.configuracao))
+    // Re-seed filtros apenas quando troca de fonte; configuracao da mesma fonte é gerenciada localmente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fonteSelecionada?.id])
 
   async function persistirFiltrosNaFonte(): Promise<void> {
