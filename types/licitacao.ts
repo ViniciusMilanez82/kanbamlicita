@@ -41,21 +41,9 @@ export interface Movimentacao {
   criadoEm: string;
 }
 
-export interface AcaoIa {
-  id: string;
-  tipo: string;
-  resposta: string | null;
-  respostaJson: Record<string, unknown> | null;
-  modelo: string | null;
-  status: string;
-  erro: string | null;
-  criadoEm: string;
-}
-
 export interface LicitacaoDetalhe extends Licitacao {
   card: CardInfo | null;
   movimentacoes: Movimentacao[];
-  acoesIa: AcaoIa[];
 }
 
 export interface KanbanColuna {
@@ -76,98 +64,4 @@ export interface KanbanMetricas {
   urgentes: number;
   semResponsavel: number;
   captadasHoje: number;
-}
-
-export interface Concorrente {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  segmentos: string[];
-  porte: string | null;
-  uf: string | null;
-  observacoes: string | null;
-  ativo: boolean;
-}
-
-export interface ResultadoLicitacao {
-  id: string;
-  licitacaoId: string;
-  resultado: string;
-  empresaVencedoraId: string | null;
-  empresaVencedora: { id: string; nome: string; cnpj: string | null } | null;
-  nomeVencedorExterno: string | null;
-  valorVencedor: string | null;
-  valorNossaProposta: string | null;
-  diferencaPercentual: number | null;
-  criterioJulgamento: string | null;
-  motivoDerrota: string | null;
-  motivoDetalhado: string | null;
-  licoesAprendidas: string | null;
-  registradoPor: { id: string; name: string | null } | null;
-  criadoEm: string;
-  atualizadoEm: string;
-}
-
-export interface ChecklistEditalItem {
-  id: string;
-  licitacaoId: string;
-  nome: string;
-  categoria: string;
-  obrigatorio: boolean;
-  status: string;
-  documentoEmpresaId: string | null;
-  documentoEmpresa: {
-    id: string;
-    nome: string;
-    status: string;
-    nivelAlerta: string | null;
-    dataValidade: string | null;
-  } | null;
-  observacoes: string | null;
-  ordem: number;
-}
-
-export interface DecisaoGoNoGo {
-  id: string;
-  licitacaoId: string;
-  decisao: string;
-  scoreNoMomento: number | null;
-  checklistPronto: boolean;
-  valorEstimadoCapturavel: string | null;
-  riscosIdentificados: string[] | null;
-  justificativa: string | null;
-  decididoPor: { id: string; name: string | null } | null;
-  criadoEm: string;
-}
-
-export interface AtestadoTecnico {
-  id: string;
-  documentoEmpresaId: string;
-  documentoEmpresa?: {
-    id: string;
-    nome: string;
-    categoria: string;
-    status: string;
-  } | null;
-  clienteNome: string;
-  clienteCnpj: string | null;
-  descricaoServico: string;
-  tags: string[];
-  valorContrato: string | null;
-  dataInicio: string | null;
-  dataFim: string | null;
-  possuiCat: boolean;
-  numeroCat: string | null;
-  observacoes: string | null;
-  criadoEm: string;
-}
-
-export interface TemplateDeclaracao {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  categoria: string;
-  conteudoHtml: string;
-  variaveis: string[];
-  ativo: boolean;
 }

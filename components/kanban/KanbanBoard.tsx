@@ -89,11 +89,10 @@ export function KanbanBoard() {
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
   const isDraggingRef = useRef(false);
 
-  // Modal de mover card (resultado / motivo)
+  // Modal de mover card (motivo obrigatório quando coluna negativa)
   const [moverModal, setMoverModal] = useState<{
     cardId: string;
     colunaAtualId: string;
-    licitacaoId: string;
     destinoInicial: string;
   } | null>(null);
 
@@ -276,19 +275,10 @@ export function KanbanBoard() {
     );
     if (colunaOrigem?.id === colDestino.id) return;
 
-    const nomeLC = colDestino.nome.toLowerCase();
-    const ehResultado = nomeLC.includes("ganh") || nomeLC.includes("perd");
-
-    if (colDestino.tipo === "final_negativo" || ehResultado) {
-      // Encontra a licitacaoId do card
-      const card = colunaOrigem?.cards.find((c) => c.id === cardId);
-      const licitacaoId = card?.licitacao?.id;
-      if (!licitacaoId) return;
-
+    if (colDestino.tipo === "final_negativo") {
       setMoverModal({
         cardId,
         colunaAtualId: colunaOrigem!.id,
-        licitacaoId,
         destinoInicial: colDestino.id,
       });
     } else {
@@ -368,7 +358,6 @@ export function KanbanBoard() {
         <MoverCardModal
           colunas={colunas as KanbanColuna[]}
           colunaAtualId={moverModal.colunaAtualId}
-          licitacaoId={moverModal.licitacaoId}
           destinoInicial={moverModal.destinoInicial}
           onMover={handleMoverModalConfirm}
           onClose={handleMoverModalClose}
