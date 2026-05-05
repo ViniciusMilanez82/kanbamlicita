@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Search } from "lucide-react";
+import { LayoutDashboard, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/kanban", label: "Kanban", icon: LayoutDashboard },
   { href: "/pncp", label: "Compras públicas", icon: Search },
   { href: "/petronect", label: "Petronect", icon: Search },
+  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export function SidebarNav() {

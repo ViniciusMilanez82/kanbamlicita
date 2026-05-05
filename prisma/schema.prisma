@@ -32,20 +32,34 @@ enum StatusItem {
   erro
 }
 
+enum StatusExtracaoFicha {
+  pendente
+  extraindo
+  concluida
+  erro
+}
+
+enum LlmProvider {
+  anthropic
+  openai
+  gemini
+  interna
+}
+
 // ==================== FONTES DE CAPTAÇÃO ====================
 
 model FonteCaptacao {
-  id                  String         @id @default(cuid())
+  id                  String    @id @default(cuid())
   nome                String
   tipo                TipoFonte
-  ativo               Boolean        @default(true)
-  parametros          Json           @default("{}")
+  ativo               Boolean   @default(true)
+  parametros          Json      @default("{}")
   credenciais         Json?
   filtros             Json?
   periodicidade       String?
-  ultimaSincronizacao DateTime?      @map("ultima_sincronizacao")
-  criadoEm            DateTime       @default(now()) @map("criado_em")
-  atualizadoEm        DateTime       @updatedAt @map("atualizado_em")
+  ultimaSincronizacao DateTime? @map("ultima_sincronizacao")
+  criadoEm            DateTime  @default(now()) @map("criado_em")
+  atualizadoEm        DateTime  @updatedAt @map("atualizado_em")
 
   execucoes  ExecucaoCaptacao[]
   licitacoes Licitacao[]
@@ -69,21 +83,21 @@ model ExecucaoCaptacao {
   log              Json?
   disparadoPor     String?        @map("disparado_por")
 
-  fonte FonteCaptacao    @relation(fields: [fonteId], references: [id])
+  fonte FonteCaptacao @relation(fields: [fonteId], references: [id])
   itens ItemCaptado[]
 
   @@map("execucoes_captacao")
 }
 
 model ItemCaptado {
-  id                    String     @id @default(cuid())
-  execucaoId            String     @map("execucao_id")
-  identificadorExterno  String     @map("identificador_externo")
-  dadosBrutos           Json       @map("dados_brutos")
-  status                StatusItem
-  licitacaoId           String?    @map("licitacao_id")
-  motivo                String?
-  criadoEm              DateTime   @default(now()) @map("criado_em")
+  id                   String     @id @default(cuid())
+  execucaoId           String     @map("execucao_id")
+  identificadorExterno String     @map("identificador_externo")
+  dadosBrutos          Json       @map("dados_brutos")
+  status               StatusItem
+  licitacaoId          String?    @map("licitacao_id")
+  motivo               String?
+  criadoEm             DateTime   @default(now()) @map("criado_em")
 
   execucao  ExecucaoCaptacao @relation(fields: [execucaoId], references: [id])
   licitacao Licitacao?       @relation(fields: [licitacaoId], references: [id])
@@ -94,16 +108,16 @@ model ItemCaptado {
 // ==================== KANBAN ====================
 
 model KanbanColuna {
-  id      String @id @default(cuid())
-  nome    String
-  ordem   Int
-  cor     String @default("#3B82F6")
-  tipo    String @default("normal")
-  ativo   Boolean @default(true)
-  acoesPadrao      String[]  @default([]) @map("acoes_padrao")
-  corEtapa         String?   @map("cor_etapa")
-  papelResponsavel String?   @map("papel_responsavel")
-  criadoEm DateTime @default(now()) @map("criado_em")
+  id               String   @id @default(cuid())
+  nome             String
+  ordem            Int
+  cor              String   @default("#3B82F6")
+  tipo             String   @default("normal")
+  ativo            Boolean  @default(true)
+  acoesPadrao      String[] @default([]) @map("acoes_padrao")
+  corEtapa         String?  @map("cor_etapa")
+  papelResponsavel String?  @map("papel_responsavel")
+  criadoEm         DateTime @default(now()) @map("criado_em")
 
   cards KanbanCard[]
 
@@ -111,64 +125,143 @@ model KanbanColuna {
 }
 
 model Licitacao {
-  id              String    @id @default(cuid())
-  numero          Int       @default(autoincrement()) @unique
-  titulo          String
-  orgao           String?
-  objeto          String?   @db.Text
-  modalidade      String?
-  uf              String?
-  municipio       String?
-  valorEstimado   Decimal?  @map("valor_estimado") @db.Decimal(15, 2)
-  valorHomologado Decimal?  @map("valor_homologado") @db.Decimal(15, 2)
-  dataPublicacao  DateTime? @map("data_publicacao")
-  dataSessao      DateTime? @map("data_sessao")
+  id                       String    @id @default(cuid())
+  numero                   Int       @unique @default(autoincrement())
+  titulo                   String
+  orgao                    String?
+  objeto                   String?   @db.Text
+  modalidade               String?
+  uf                       String?
+  municipio                String?
+  valorEstimado            Decimal?  @map("valor_estimado") @db.Decimal(15, 2)
+  valorHomologado          Decimal?  @map("valor_homologado") @db.Decimal(15, 2)
+  dataPublicacao           DateTime? @map("data_publicacao")
+  dataSessao               DateTime? @map("data_sessao")
   dataEncerramentoProposta DateTime? @map("data_encerramento_proposta")
 
-  modalidadeId       Int?     @map("modalidade_id")
-  modalidadeNome     String?  @map("modalidade_nome")
-  modoDisputaNome    String?  @map("modo_disputa_nome")
-  situacaoId         Int?     @map("situacao_id")
-  situacaoNome       String?  @map("situacao_nome")
-  tipoInstrumentoConvocatorioNome String? @map("tipo_instrumento_convocatorio_nome")
-  srp                Boolean? @map("srp")
-  amparoLegalCodigo  Int?     @map("amparo_legal_codigo")
-  amparoLegalNome    String?  @map("amparo_legal_nome")
-  processo           String?  @map("processo")
-  numeroCompra       String?  @map("numero_compra")
-  informacaoComplementar String? @map("informacao_complementar") @db.Text
+  modalidadeId                    Int?     @map("modalidade_id")
+  modalidadeNome                  String?  @map("modalidade_nome")
+  modoDisputaNome                 String?  @map("modo_disputa_nome")
+  situacaoId                      Int?     @map("situacao_id")
+  situacaoNome                    String?  @map("situacao_nome")
+  tipoInstrumentoConvocatorioNome String?  @map("tipo_instrumento_convocatorio_nome")
+  srp                             Boolean? @map("srp")
+  amparoLegalCodigo               Int?     @map("amparo_legal_codigo")
+  amparoLegalNome                 String?  @map("amparo_legal_nome")
+  processo                        String?  @map("processo")
+  numeroCompra                    String?  @map("numero_compra")
+  informacaoComplementar          String?  @map("informacao_complementar") @db.Text
 
-  linkOrigem      String?   @map("link_origem")
-  linkSistemaOrigem String? @map("link_sistema_origem") @db.Text
-  observacoes     String?   @db.Text
-  dadosExtraidos  Json?     @map("dados_extraidos")
-  criadoEm        DateTime  @default(now()) @map("criado_em")
-  atualizadoEm    DateTime  @updatedAt @map("atualizado_em")
-  fonteId         String?   @map("fonte_id")
+  linkOrigem        String?  @map("link_origem")
+  linkSistemaOrigem String?  @map("link_sistema_origem") @db.Text
+  observacoes       String?  @db.Text
+  dadosExtraidos    Json?    @map("dados_extraidos")
+  criadoEm          DateTime @default(now()) @map("criado_em")
+  atualizadoEm      DateTime @updatedAt @map("atualizado_em")
+  fonteId           String?  @map("fonte_id")
 
   card          KanbanCard?
   movimentacoes Movimentacao[]
-  fonte         FonteCaptacao? @relation(fields: [fonteId], references: [id])
+  fonte         FonteCaptacao?  @relation(fields: [fonteId], references: [id])
   itensCaptados ItemCaptado[]
+  ficha         LicitacaoFicha?
+  itens         LicitacaoItem[]
 
   @@map("licitacoes")
 }
 
-model KanbanCard {
-  id           String   @id @default(cuid())
-  licitacaoId  String   @unique @map("licitacao_id")
-  colunaId     String   @map("coluna_id")
-  ordem        Int      @default(0)
-  responsavelId String? @map("responsavel_id")
-  urgente      Boolean  @default(false)
-  notas        String?  @db.Text
-  checklistProgresso Json @default("{}") @map("checklist_progresso")
+// ==================== FICHA + ITENS ====================
+
+/// Ficha consolidada da licitação — resultado da extração IA do edital.
+/// Complementa os dados PNCP estruturados que já vivem em `Licitacao`.
+model LicitacaoFicha {
+  id          String @id @default(cuid())
+  licitacaoId String @unique @map("licitacao_id")
+
+  resumo                String? @db.Text
+  objetoDetalhado       String? @map("objeto_detalhado") @db.Text
+  prazoExecucao         String? @map("prazo_execucao")
+  localExecucao         String? @map("local_execucao") @db.Text
+  garantia              String? @db.Text
+  criterioJulgamento    String? @map("criterio_julgamento")
+  formaPagamento        String? @map("forma_pagamento") @db.Text
+  reajuste              String? @db.Text
+  exigenciasHabilitacao Json?   @map("exigencias_habilitacao")
+  criteriosTecnicos     Json?   @map("criterios_tecnicos")
+  riscos                Json?
+  oportunidades         Json?
+  observacoesIA         String? @map("observacoes_ia") @db.Text
+
+  status               StatusExtracaoFicha @default(pendente)
+  extracaoIniciadaEm   DateTime?           @map("extracao_iniciada_em")
+  extracaoFinalizadaEm DateTime?           @map("extracao_finalizada_em")
+  extracaoErro         String?             @map("extracao_erro") @db.Text
+  modeloIA             String?             @map("modelo_ia")
+  versaoPrompt         String?             @map("versao_prompt")
+  tokensInput          Int?                @map("tokens_input")
+  tokensOutput         Int?                @map("tokens_output")
+
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  licitacao   Licitacao    @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-  coluna      KanbanColuna @relation(fields: [colunaId], references: [id])
-  responsavel User?        @relation(fields: [responsavelId], references: [id])
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("licitacoes_fichas")
+}
+
+/// Item da licitação — espelha o endpoint oficial PNCP
+/// /v1/orgaos/{cnpj}/compras/{ano}/{seq}/itens (Manual §6.5).
+model LicitacaoItem {
+  id          String @id @default(cuid())
+  licitacaoId String @map("licitacao_id")
+
+  numeroItem            Int      @map("numero_item")
+  descricao             String   @db.Text
+  quantidade            Decimal? @db.Decimal(18, 4)
+  unidadeMedida         String?  @map("unidade_medida")
+  materialOuServico     String?  @map("material_ou_servico")
+  materialOuServicoNome String?  @map("material_ou_servico_nome")
+  valorUnitarioEstimado Decimal? @map("valor_unitario_estimado") @db.Decimal(18, 4)
+  valorTotal            Decimal? @map("valor_total") @db.Decimal(18, 2)
+
+  itemCategoriaId        Int?     @map("item_categoria_id")
+  itemCategoriaNome      String?  @map("item_categoria_nome")
+  ncmNbsCodigo           String?  @map("ncm_nbs_codigo")
+  ncmNbsDescricao        String?  @map("ncm_nbs_descricao") @db.Text
+  criterioJulgamentoId   Int?     @map("criterio_julgamento_id")
+  criterioJulgamentoNome String?  @map("criterio_julgamento_nome")
+  situacaoCompraItem     Int?     @map("situacao_compra_item")
+  tipoBeneficio          Int?     @map("tipo_beneficio")
+  tipoBeneficioNome      String?  @map("tipo_beneficio_nome")
+  temResultado           Boolean? @map("tem_resultado")
+
+  dadosBrutosPncp Json? @map("dados_brutos_pncp")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([licitacaoId, numeroItem])
+  @@index([licitacaoId])
+  @@map("licitacoes_itens")
+}
+
+model KanbanCard {
+  id                 String   @id @default(cuid())
+  licitacaoId        String   @unique @map("licitacao_id")
+  colunaId           String   @map("coluna_id")
+  ordem              Int      @default(0)
+  responsavelId      String?  @map("responsavel_id")
+  urgente            Boolean  @default(false)
+  notas              String?  @db.Text
+  checklistProgresso Json     @default("{}") @map("checklist_progresso")
+  criadoEm           DateTime @default(now()) @map("criado_em")
+  atualizadoEm       DateTime @updatedAt @map("atualizado_em")
+
+  licitacao     Licitacao      @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  coluna        KanbanColuna   @relation(fields: [colunaId], references: [id])
+  responsavel   User?          @relation(fields: [responsavelId], references: [id])
   movimentacoes Movimentacao[]
 
   @@map("kanban_cards")
@@ -251,4 +344,20 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verificacao_tokens")
+}
+
+// ==================== CONFIGURAÇÃO GLOBAL ====================
+
+/// Configuração global do sistema (linha única, id = "default").
+/// Hoje guarda apenas a escolha de LLM e suas credenciais.
+model Configuracao {
+  id           String      @id @default("default")
+  llmProvider  LlmProvider @default(anthropic) @map("llm_provider")
+  llmModelo    String?     @map("llm_modelo")
+  llmApiKey    String?     @map("llm_api_key")
+  llmBaseUrl   String?     @map("llm_base_url")
+  atualizadoEm DateTime    @updatedAt @map("atualizado_em")
+  criadoEm     DateTime    @default(now()) @map("criado_em")
+
+  @@map("configuracoes")
 }
