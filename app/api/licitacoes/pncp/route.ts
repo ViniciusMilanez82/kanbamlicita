@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import type { PncpContratoRaw } from "@/lib/pncp/types";
+import type { PncpContratacaoOficial } from "@/lib/pncp/types";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
+import { buscarDetalhesContratacao } from "@/lib/pncp/detalhes";
+import { urlEditalPncp } from "@/lib/pncp/url";
 
-function idPncp(c: PncpContratoRaw): string {
+function dedupId(c: PncpContratacaoOficial): string {
   const id = c.numeroControlePNCP || c.numeroControlePncpCompra;
   return id ? `pncp-contrato:${id}` : `pncp-contrato:${Date.now()}`;
 }
 
-function urlPncp(c: PncpContratoRaw, urlFromSearch?: string | null): string | null {
-  if (urlFromSearch) {
-    return urlFromSearch.startsWith("http") ? urlFromSearch : `https://pncp.gov.br${urlFromSearch}`;
-  }
+function urlPncpDoEdital(c: PncpContratacaoOficial): string | null {
   const id = c.numeroControlePNCP || c.numeroControlePncpCompra;
-  if (id) return `https://pncp.gov.br/app/editais/${id}`;
-  return null;
+  return urlEditalPncp(id ?? null);
+}
+
+function toDate(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export async function POST(req: Request) {
@@ -22,28 +26,49 @@ export async function POST(req: Request) {
   if (!auth) return naoAutenticado();
 
   const body = await req.json();
-  const raw = body.raw as PncpContratoRaw | undefined;
-  const itemUrl = (body.urlPncp as string | undefined) ?? null;
+  const raw = body.raw as PncpContratacaoOficial | undefined;
   if (!raw || typeof raw !== "object") {
-    return NextResponse.json({ error: "Campo 'raw' com objeto PNCP é obrigatório" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Campo 'raw' com objeto PNCP é obrigatório" },
+      { status: 400 }
+    );
   }
 
-  // Extrai dados do raw para criar a licitação
-  const titulo = (raw.objetoContrato ?? "").slice(0, 500) || "Sem título";
-  const orgao = raw.orgaoEntidade?.razaoSocial ?? null;
-  const objeto = raw.objetoContrato ?? null;
-  const uf = raw.unidadeOrgao?.ufSigla ?? null;
-  const municipio = raw.unidadeOrgao?.municipioNome ?? null;
-  const valorGlobal = typeof raw.valorGlobal === "number" ? raw.valorGlobal : null;
-  const dataPublicacaoStr = raw.dataPublicacaoPncp ?? null;
-  const categoria = raw.categoriaProcesso?.nome ?? raw.tipoContrato?.nome ?? null;
   const controle = raw.numeroControlePNCP ?? raw.numeroControlePncpCompra ?? "";
 
-  const dedupId = idPncp(raw);
-  const linkOrigem = urlPncp(raw, itemUrl) ?? dedupId;
+  // Se o raw veio do search.api (sem campos oficiais), enriquecemos agora.
+  // Detectamos pela presença de modalidadeId/situacaoCompraId, que só existem
+  // no schema oficial. Fail-soft: se enrich falhar, importamos com o que tem.
+  const precisaEnriquecer =
+    raw.modalidadeId === undefined && raw.situacaoCompraId === undefined;
+  const oficial: PncpContratacaoOficial =
+    precisaEnriquecer && controle
+      ? (await buscarDetalhesContratacao(controle).catch(() => null)) ?? raw
+      : raw;
+
+  const titulo = (oficial.objetoCompra ?? oficial.objetoContrato ?? "")
+    .slice(0, 500) || "Sem título";
+  const orgao = oficial.orgaoEntidade?.razaoSocial ?? null;
+  const objeto = oficial.objetoCompra ?? oficial.objetoContrato ?? null;
+  const uf = oficial.unidadeOrgao?.ufSigla ?? null;
+  const municipio = oficial.unidadeOrgao?.municipioNome ?? null;
+
+  const valorEstimado =
+    typeof oficial.valorTotalEstimado === "number"
+      ? oficial.valorTotalEstimado
+      : typeof oficial.valorGlobal === "number"
+        ? oficial.valorGlobal
+        : null;
+  const valorHomologado =
+    typeof oficial.valorTotalHomologado === "number"
+      ? oficial.valorTotalHomologado
+      : null;
+
+  const dedup = dedupId(oficial);
+  const linkOrigem = urlPncpDoEdital(oficial) ?? dedup;
 
   const existente = await db.licitacao.findFirst({
-    where: { OR: [{ linkOrigem }, { linkOrigem: dedupId }] },
+    where: { OR: [{ linkOrigem }, { linkOrigem: dedup }] },
   });
   if (existente) {
     return NextResponse.json(
@@ -56,40 +81,58 @@ export async function POST(req: Request) {
     where: { tipo: "inicial", ativo: true },
     orderBy: { ordem: "asc" },
   });
-
   if (!colunaInicial) {
-    return NextResponse.json({ error: "Nenhuma coluna inicial configurada" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Nenhuma coluna inicial configurada" },
+      { status: 500 }
+    );
   }
 
-  const dataPub = dataPublicacaoStr ? new Date(dataPublicacaoStr) : null;
-
-  // Associar à fonte PNCP se existir
   const fontePncp = await db.fonteCaptacao.findFirst({
     where: { tipo: "pncp", ativo: true },
     select: { id: true },
   });
+
+  const linkSistemaOrigem =
+    typeof oficial.linkSistemaOrigem === "string" &&
+    oficial.linkSistemaOrigem.startsWith("http")
+      ? oficial.linkSistemaOrigem
+      : null;
 
   const licitacao = await db.licitacao.create({
     data: {
       titulo,
       orgao,
       objeto,
-      modalidade: categoria,
+      modalidade: oficial.modalidadeNome ?? null,
       uf,
       municipio,
-      valorEstimado: valorGlobal,
-      dataPublicacao: dataPub && !Number.isNaN(dataPub.getTime()) ? dataPub : null,
+      valorEstimado,
+      valorHomologado,
+      dataPublicacao: toDate(oficial.dataPublicacaoPncp),
+      dataSessao: toDate(oficial.dataAberturaProposta),
+      dataEncerramentoProposta: toDate(oficial.dataEncerramentoProposta),
+      modalidadeId: oficial.modalidadeId ?? null,
+      modalidadeNome: oficial.modalidadeNome ?? null,
+      modoDisputaNome: oficial.modoDisputaNome ?? null,
+      situacaoId: oficial.situacaoCompraId ?? null,
+      situacaoNome: oficial.situacaoCompraNome ?? null,
+      tipoInstrumentoConvocatorioNome:
+        oficial.tipoInstrumentoConvocatorioNome ?? null,
+      srp: typeof oficial.srp === "boolean" ? oficial.srp : null,
+      amparoLegalCodigo: oficial.amparoLegal?.codigo ?? null,
+      amparoLegalNome: oficial.amparoLegal?.nome ?? null,
+      processo: oficial.processo ?? null,
+      numeroCompra: oficial.numeroCompra ?? null,
+      informacaoComplementar: oficial.informacaoComplementar ?? null,
       linkOrigem,
+      linkSistemaOrigem,
       observacoes: `Importado do PNCP. Controle: ${controle || linkOrigem}`,
-      dadosExtraidos: raw as object,
+      dadosExtraidos: oficial as object,
       fonteId: fontePncp?.id ?? null,
-      card: {
-        create: { colunaId: colunaInicial.id, ordem: 0 },
-      },
+      card: { create: { colunaId: colunaInicial.id, ordem: 0 } },
     },
-    include: {
-      card: { include: { coluna: true } },
-    },
+    include: { card: { include: { coluna: true } } },
   });
 
   return NextResponse.json(licitacao, { status: 201 });

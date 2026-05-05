@@ -120,9 +120,26 @@ model Licitacao {
   uf              String?
   municipio       String?
   valorEstimado   Decimal?  @map("valor_estimado") @db.Decimal(15, 2)
+  valorHomologado Decimal?  @map("valor_homologado") @db.Decimal(15, 2)
   dataPublicacao  DateTime? @map("data_publicacao")
   dataSessao      DateTime? @map("data_sessao")
+  dataEncerramentoProposta DateTime? @map("data_encerramento_proposta")
+
+  modalidadeId       Int?     @map("modalidade_id")
+  modalidadeNome     String?  @map("modalidade_nome")
+  modoDisputaNome    String?  @map("modo_disputa_nome")
+  situacaoId         Int?     @map("situacao_id")
+  situacaoNome       String?  @map("situacao_nome")
+  tipoInstrumentoConvocatorioNome String? @map("tipo_instrumento_convocatorio_nome")
+  srp                Boolean? @map("srp")
+  amparoLegalCodigo  Int?     @map("amparo_legal_codigo")
+  amparoLegalNome    String?  @map("amparo_legal_nome")
+  processo           String?  @map("processo")
+  numeroCompra       String?  @map("numero_compra")
+  informacaoComplementar String? @map("informacao_complementar") @db.Text
+
   linkOrigem      String?   @map("link_origem")
+  linkSistemaOrigem String? @map("link_sistema_origem") @db.Text
   observacoes     String?   @db.Text
   dadosExtraidos  Json?     @map("dados_extraidos")
   criadoEm        DateTime  @default(now()) @map("criado_em")

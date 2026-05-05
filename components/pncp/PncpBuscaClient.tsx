@@ -488,23 +488,44 @@ export function PncpBuscaClient() {
                       <p className="mt-1.5 ml-7 text-sm text-slate-600">{row.orgao}</p>
                     )}
                     <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-xs">
+                      {row.dataEncerramentoProposta && (
+                        <span
+                          className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800 ring-1 ring-amber-200"
+                          title="Data de encerramento das propostas (PNCP)"
+                        >
+                          ⏱ Prazo: {new Date(row.dataEncerramentoProposta).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                        </span>
+                      )}
                       {row.uf && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">{row.uf}</span>
                       )}
                       {row.municipio && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{row.municipio}</span>
                       )}
-                      {row.valorGlobal != null && (
+                      {row.valorEstimado != null && row.valorEstimado > 0 && (
                         <span className="rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">
-                          R$ {row.valorGlobal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          R$ {row.valorEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       )}
-                      {row.modalidade && (
-                        <span className="rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">{row.modalidade}</span>
+                      {row.modalidadeNome && (
+                        <span className="rounded-full bg-purple-50 px-2 py-0.5 text-purple-700">{row.modalidadeNome}</span>
+                      )}
+                      {row.modoDisputaNome && (
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-700">{row.modoDisputaNome}</span>
+                      )}
+                      {row.srp && (
+                        <span className="rounded-full bg-cyan-50 px-2 py-0.5 font-medium text-cyan-700" title="Sistema de Registro de Preços">
+                          SRP
+                        </span>
+                      )}
+                      {row.situacaoNome && (
+                        <span className="rounded-full bg-slate-50 px-2 py-0.5 text-slate-600 ring-1 ring-slate-200">
+                          {row.situacaoNome}
+                        </span>
                       )}
                       {row.dataPublicacao && (
-                        <span className="text-slate-400">
-                          {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
+                        <span className="text-slate-400" title="Publicado no PNCP">
+                          Pub: {new Date(row.dataPublicacao).toLocaleDateString("pt-BR")}
                         </span>
                       )}
                       {row.urlPncp && (
@@ -515,6 +536,17 @@ export function PncpBuscaClient() {
                           className="inline-flex items-center gap-0.5 text-blue-600 hover:underline"
                         >
                           Ver no PNCP <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                      {row.linkSistemaOrigem && (
+                        <a
+                          href={row.linkSistemaOrigem}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-0.5 text-emerald-700 hover:underline"
+                          title="Portal de origem (BLL, ComprasNet, etc.)"
+                        >
+                          Portal origem <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>

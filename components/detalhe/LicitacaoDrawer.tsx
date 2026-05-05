@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { urlEditalPncp } from "@/lib/pncp/url";
 
 interface LicitacaoDrawerProps {
   licitacaoId: string;
@@ -54,6 +55,7 @@ type Licitacao = {
   valorEstimado: number | string | null;
   observacoes: string | null;
   linkOrigem: string | null;
+  linkSistemaOrigem: string | null;
   card: { coluna?: { nome: string; cor: string | null }; urgente?: boolean } | null;
   movimentacoes: Movimentacao[];
 };
@@ -61,11 +63,20 @@ type Licitacao = {
 function resolverLink(linkOrigem: string | null): string | null {
   if (!linkOrigem) return null;
   if (linkOrigem.startsWith("pncp-contrato:")) {
-    const id = linkOrigem.replace("pncp-contrato:", "");
-    return `https://pncp.gov.br/app/editais/${id}`;
+    return urlEditalPncp(linkOrigem.replace("pncp-contrato:", ""));
   }
   if (linkOrigem.startsWith("petronect:")) return null;
-  return linkOrigem.startsWith("http") ? linkOrigem : null;
+  if (!linkOrigem.startsWith("http")) return null;
+
+  // URLs do PNCP no formato antigo "/app/editais/<cnpj>-<tipo>-<seq>/<ano>"
+  // ficaram salvas em licitações importadas antes da correção. Reformata
+  // para o formato canônico atual.
+  const m = linkOrigem.match(
+    /^https?:\/\/pncp\.gov\.br\/app\/editais\/(\d{14}-\d+-\d+\/\d{4})\/?$/
+  );
+  if (m) return urlEditalPncp(m[1]);
+
+  return linkOrigem;
 }
 
 function formDeLicitacao(l: Licitacao): LicitacaoForm {
@@ -182,6 +193,7 @@ function Conteudo({
   });
 
   const link = resolverLink(licitacao?.linkOrigem ?? null);
+  const linkOrigem = licitacao?.linkSistemaOrigem ?? null;
   const titulo = isNova ? "Nova licitação" : licitacao?.titulo ?? "";
 
   return (
@@ -229,7 +241,17 @@ function Conteudo({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline ml-auto"
             >
-              <ExternalLink className="h-3 w-3" /> Abrir no portal
+              <ExternalLink className="h-3 w-3" /> Ver no PNCP
+            </a>
+          )}
+          {linkOrigem && (
+            <a
+              href={linkOrigem}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" /> Ir ao portal de origem
             </a>
           )}
         </div>

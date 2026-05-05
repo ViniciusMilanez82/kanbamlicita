@@ -7,7 +7,59 @@
  *  - Download:    GET /api/pncp/v1/orgaos/{cnpj}/contratos/{ano}/{sequencial}/arquivos/{seqDoc}
  */
 
+import type { PncpContratacaoOficial } from "./types";
+
 const PNCP_V1_BASE = "https://pncp.gov.br/api/pncp/v1";
+
+// API de consulta v1 (oficial, documentada no Manual PNCP §3.1).
+const PNCP_CONSULTA_V1_BASE = "https://pncp.gov.br/api/consulta/v1";
+
+/**
+ * Busca o objeto completo de uma contratação na API oficial /v1/orgaos/{cnpj}/compras/{ano}/{seq}
+ * (Manual PNCP §6.4, schema idêntico ao da listagem).
+ *
+ * Fail-soft: timeout 5s + retorna null em qualquer erro, para não bloquear
+ * a busca/import caso o PNCP esteja lento/instável.
+ */
+export async function buscarDetalhesContratacao(
+  numeroControle: string,
+  timeoutMs = 5000
+): Promise<PncpContratacaoOficial | null> {
+  const parsed = parseNumeroControle(numeroControle);
+  if (!parsed) return null;
+
+  const endpoint = `${PNCP_CONSULTA_V1_BASE}/orgaos/${parsed.cnpj}/compras/${parsed.ano}/${parsed.sequencial}`;
+
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(endpoint, {
+      headers: HEADERS,
+      cache: "no-store",
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") ?? "";
+    if (!ct.includes("json")) return null;
+    return (await res.json()) as PncpContratacaoOficial;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Compat: hoje só extrai linkSistemaOrigem. Implementado em cima de
+ * buscarDetalhesContratacao para reaproveitar a chamada quando possível.
+ */
+export async function buscarLinkSistemaOrigem(
+  numeroControle: string
+): Promise<string | null> {
+  const data = await buscarDetalhesContratacao(numeroControle);
+  const link = data?.linkSistemaOrigem;
+  return typeof link === "string" && link.startsWith("http") ? link : null;
+}
 
 const HEADERS = {
   Accept: "application/json",

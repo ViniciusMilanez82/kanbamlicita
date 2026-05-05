@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
-import { buscarContratosPncp } from "@/lib/pncp/client";
-import { searchItemToListaItem, parsePalavrasChave, parseUfsCsv } from "@/lib/pncp/normalize";
+import { buscarContratosPncp, type PncpSearchItem } from "@/lib/pncp/client";
+import {
+  searchItemToListaItem,
+  parsePalavrasChave,
+  parseUfsCsv,
+} from "@/lib/pncp/normalize";
 import { getAuthFromRequest, naoAutenticado } from "@/lib/auth-api";
-import type { PncpSituacao } from "@/lib/pncp/types";
-
-type PncpItemNormalizado = ReturnType<typeof searchItemToListaItem> & {
-  tipoDocumento?: string;
-  situacao?: PncpSituacao;
-  dataPublicacao?: string;
-};
+import { buscarDetalhesContratacao } from "@/lib/pncp/detalhes";
+import type {
+  PncpContratoListaItem,
+  PncpContratacaoOficial,
+  PncpSituacao,
+} from "@/lib/pncp/types";
 
 /**
  * POST /api/pncp/contratos
  *
  * Busca editais no PNCP (oportunidades abertas).
- * Cada palavra-chave separada por vírgula gera uma busca independente.
- * Resultados são combinados sem duplicatas.
+ * 1. Descoberta por texto via /api/search/ (palavras-chave separadas por vírgula).
+ * 2. Cada item da página é enriquecido em paralelo com o detalhe oficial
+ *    /api/consulta/v1/orgaos/{cnpj}/compras/{ano}/{seq} para puxar dataEncerramentoProposta,
+ *    modalidade, situação, srp, amparoLegal etc. (Manual PNCP §6.4).
+ *    Fail-soft: se o detalhe falhar, mantém só os dados do search.
  */
 export async function POST(req: Request) {
   const auth = await getAuthFromRequest(req);
@@ -23,7 +29,10 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const pagina = Math.max(Number(body.pagina) || 1, 1);
-  const tamanhoPagina = Math.min(Math.max(Number(body.tamanhoPagina) || 20, 5), 50);
+  const tamanhoPagina = Math.min(
+    Math.max(Number(body.tamanhoPagina) || 20, 5),
+    50
+  );
 
   const ufsInput: string[] = Array.isArray(body.ufs)
     ? body.ufs
@@ -35,7 +44,9 @@ export async function POST(req: Request) {
   const filtrarUf = ufsSet.size > 0;
 
   const termos: string[] = Array.isArray(body.palavrasChave)
-    ? body.palavrasChave.map((p: unknown) => String(p).trim()).filter(Boolean)
+    ? body.palavrasChave
+        .map((p: unknown) => String(p).trim())
+        .filter(Boolean)
     : parsePalavrasChave(String(body.palavrasChaveTexto ?? ""));
 
   if (termos.length === 0) {
@@ -50,70 +61,100 @@ export async function POST(req: Request) {
   }
 
   try {
-    const todosItens: ReturnType<typeof searchItemToListaItem>[] = [];
     const idsVistos = new Set<string>();
     let totalApiSoma = 0;
 
-    // Busca cada termo separadamente (PNCP faz AND entre palavras,
-    // então "container galpão" retorna 0, mas buscando separado funciona)
-    const buscasPorTermo = termos.map((termo) =>
-      buscarTermoPncp({
-        termo,
-        pagina,
-        tamanhoPagina,
-        ufsInput,
-        ufsSet,
-        filtrarUf,
-        idsVistos,
-      })
+    type SearchAchado = {
+      item: PncpSearchItem;
+      tipoDocumento: string;
+      situacao: PncpSituacao;
+    };
+    const achados: SearchAchado[] = [];
+
+    const buscas = await Promise.all(
+      termos.map((termo) =>
+        buscarTermoPncp({
+          termo,
+          pagina,
+          tamanhoPagina,
+          ufsInput,
+          ufsSet,
+          filtrarUf,
+          idsVistos,
+        })
+      )
     );
 
-    const resultados = await Promise.all(buscasPorTermo);
-
-    for (const res of resultados) {
+    for (const res of buscas) {
       totalApiSoma += res.totalApi;
-      for (const item of res.itens) {
-        todosItens.push(item);
-      }
+      for (const a of res.achados) achados.push(a);
     }
 
-    // Ordenar por data de publicação (mais recente primeiro)
-    todosItens.sort((a, b) => {
-      const da = (a as PncpItemNormalizado).dataPublicacao ?? "";
-      const db = (b as PncpItemNormalizado).dataPublicacao ?? "";
-      return db.localeCompare(da);
-    });
+    // Ordenar por data de publicação (mais recente primeiro) e fatiar antes
+    // de enriquecer — só pagamos N requests pelo que vai aparecer na página.
+    achados.sort((a, b) =>
+      (b.item.data_publicacao_pncp ?? "").localeCompare(
+        a.item.data_publicacao_pncp ?? ""
+      )
+    );
+    const fatia = achados.slice(0, tamanhoPagina);
 
-    // Paginar: pegar só o slice da página pedida
-    const itensRetorno = todosItens.slice(0, tamanhoPagina);
-    const totalPaginas = Math.max(1, Math.ceil(todosItens.length / tamanhoPagina));
+    // Enriquecimento paralelo. Falhas individuais não bloqueiam a página.
+    const detalhes = await Promise.all(
+      fatia.map(({ item }) =>
+        item.numero_controle_pncp
+          ? buscarDetalhesContratacao(item.numero_controle_pncp, 4000).catch(
+              () => null
+            )
+          : Promise.resolve(null as PncpContratacaoOficial | null)
+      )
+    );
 
-    // Tipos encontrados
+    const itensRetorno: PncpContratoListaItem[] = fatia.map(
+      ({ item, tipoDocumento, situacao }, idx) => {
+        const oficial = detalhes[idx];
+        const normalizado = searchItemToListaItem(item, oficial ?? undefined);
+        return {
+          ...normalizado,
+          tipoDocumento,
+          situacao,
+          empresaContratada: null,
+          cnpjContratada: null,
+        };
+      }
+    );
+
+    const totalPaginas = Math.max(
+      1,
+      Math.ceil(achados.length / tamanhoPagina),
+      Math.ceil(totalApiSoma / tamanhoPagina)
+    );
+
     const tiposEncontrados = new Set<string>();
     for (const item of itensRetorno) {
-      const tipo = (item as PncpItemNormalizado).tipoDocumento;
+      const tipo = item.tipoDocumento;
       if (tipo) tiposEncontrados.add(tipo);
     }
 
     return NextResponse.json({
       itens: itensRetorno,
       totalRegistros: totalApiSoma,
-      totalPaginas: Math.max(totalPaginas, Math.ceil(totalApiSoma / tamanhoPagina)),
+      totalPaginas,
       numeroPagina: pagina,
       tiposDisponiveis: [...tiposEncontrados].sort(),
-      filtrosUsados: {
-        ufs: ufsInput,
-        palavrasChave: termos,
-      },
+      filtrosUsados: { ufs: ufsInput, palavrasChave: termos },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Não foi possível consultar o site do governo";
+    const msg =
+      e instanceof Error
+        ? e.message
+        : "Não foi possível consultar o site do governo";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }
 
 /* ------------------------------------------------------------------ */
-/*  Busca um termo individual no PNCP                                   */
+/*  Busca um termo individual no PNCP (descoberta via /api/search/)    */
 /* ------------------------------------------------------------------ */
 
 async function buscarTermoPncp(params: {
@@ -124,12 +165,31 @@ async function buscarTermoPncp(params: {
   ufsSet: Set<string>;
   filtrarUf: boolean;
   idsVistos: Set<string>;
-}): Promise<{ itens: ReturnType<typeof searchItemToListaItem>[]; totalApi: number }> {
-  const { termo, pagina, tamanhoPagina, ufsInput, ufsSet, filtrarUf, idsVistos } = params;
-  const itens: ReturnType<typeof searchItemToListaItem>[] = [];
+}): Promise<{
+  achados: {
+    item: PncpSearchItem;
+    tipoDocumento: string;
+    situacao: PncpSituacao;
+  }[];
+  totalApi: number;
+}> {
+  const {
+    termo,
+    pagina,
+    tamanhoPagina,
+    ufsInput,
+    ufsSet,
+    filtrarUf,
+    idsVistos,
+  } = params;
+  const achados: {
+    item: PncpSearchItem;
+    tipoDocumento: string;
+    situacao: PncpSituacao;
+  }[] = [];
   let totalApi = 0;
 
-  // Busca mais páginas pois muitos editais já têm resultado e são descartados
+  // Mais páginas pois muitos editais já têm resultado e são descartados.
   const maxPaginas = 8;
   const tamApi = 50;
 
@@ -149,7 +209,7 @@ async function buscarTermoPncp(params: {
       if (idsVistos.has(id)) continue;
       idsVistos.add(id);
 
-      // Descartar editais que já têm resultado (alguém já ganhou) ou cancelados
+      // Descartar editais que já têm resultado ou cancelados
       if (item.tem_resultado || item.cancelado) continue;
 
       // Filtro de UF no backend
@@ -158,42 +218,29 @@ async function buscarTermoPncp(params: {
         if (!ufsSet.has(ufItem)) continue;
       }
 
-      // Classificar tipo — descartar contratos/atas/empenhos/aditivos
-      const { tipoDocumento: tipoDoc, situacao } = classificarItem(item);
+      const { tipoDocumento, situacao } = classificarItem(item);
       if (situacao !== "oportunidade") continue;
 
-      const normalizado = searchItemToListaItem(item);
-      itens.push({
-        ...normalizado,
-        tipoDocumento: tipoDoc,
-        situacao,
-        empresaContratada: null,
-        cnpjContratada: null,
-      });
+      achados.push({ item, tipoDocumento, situacao });
     }
 
-    // Se já tem itens suficientes para este termo
-    if (itens.length >= tamanhoPagina) break;
+    if (achados.length >= tamanhoPagina) break;
     if (res.items.length < tamApi) break;
   }
 
-  return { itens, totalApi };
+  return { achados, totalApi };
 }
 
 /* ------------------------------------------------------------------ */
 /*  Classificação dos itens PNCP                                       */
 /* ------------------------------------------------------------------ */
 
-/** Tipos claramente já firmados — só estes são descartados */
 const TIPOS_REFERENCIA = new Set(["Contrato", "Empenho", "Ata", "Aditivo"]);
 
-function classificarItem(item: {
-  document_type?: string;
-  title?: string;
-  tipo_nome?: string;
-  tipo_contrato_nome?: string;
-  item_url?: string;
-}): { tipoDocumento: string; situacao: PncpSituacao } {
+function classificarItem(item: PncpSearchItem): {
+  tipoDocumento: string;
+  situacao: PncpSituacao;
+} {
   const tipoDocumento = detectarTipoDocumento(item);
   const situacao: PncpSituacao = TIPOS_REFERENCIA.has(tipoDocumento)
     ? "referencia"
@@ -201,13 +248,7 @@ function classificarItem(item: {
   return { tipoDocumento, situacao };
 }
 
-function detectarTipoDocumento(item: {
-  document_type?: string;
-  title?: string;
-  tipo_nome?: string;
-  tipo_contrato_nome?: string;
-  item_url?: string;
-}): string {
+function detectarTipoDocumento(item: PncpSearchItem): string {
   const docType = (item.document_type ?? "").toLowerCase();
   const titulo = (item.title ?? "").toLowerCase();
   const tipoNome = (item.tipo_nome ?? "").toLowerCase();
@@ -216,14 +257,17 @@ function detectarTipoDocumento(item: {
 
   if (docType.includes("ata") || titulo.match(/\bata\b/) || url.includes("/atas/"))
     return "Ata";
-  if (docType.includes("empenho") || titulo.match(/\bempenho\b/) || titulo.match(/\bne\d/i) || url.includes("/empenhos/"))
+  if (
+    docType.includes("empenho") ||
+    titulo.match(/\bempenho\b/) ||
+    titulo.match(/\bne\d/i) ||
+    url.includes("/empenhos/")
+  )
     return "Empenho";
   if (docType.includes("edital") || titulo.match(/\bedital\b/) || url.includes("/editais/"))
     return "Edital";
-  if (docType.includes("aviso") || titulo.match(/\baviso\b/))
-    return "Aviso";
-  if (docType.includes("aditivo") || titulo.match(/\baditivo\b/))
-    return "Aditivo";
+  if (docType.includes("aviso") || titulo.match(/\baviso\b/)) return "Aviso";
+  if (docType.includes("aditivo") || titulo.match(/\baditivo\b/)) return "Aditivo";
   if (tipoContrato || tipoNome.includes("contrato") || url.includes("/contratos/"))
     return "Contrato";
 
