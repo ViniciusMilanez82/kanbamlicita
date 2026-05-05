@@ -50,6 +50,9 @@ next-env.d.ts
 # credenciais do Postgres na VPS (Docker)
 deploy/postgres.env
 
+# credenciais geradas localmente do app (não versionar)
+.app-credentials.env
+
 # uploads de documentos (manter apenas .gitkeep)
 /uploads/*
 !/uploads/.gitkeep
