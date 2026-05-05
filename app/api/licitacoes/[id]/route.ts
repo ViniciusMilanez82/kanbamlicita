@@ -21,10 +21,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         orderBy: { criadoEm: "desc" },
         take: 50,
       },
-      acoesIa: {
-        orderBy: { criadoEm: "desc" },
-        take: 10,
-      },
     },
   });
 

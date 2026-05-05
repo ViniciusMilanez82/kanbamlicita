@@ -2,22 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Award, BarChart3, FileSignature, FileText, FolderOpen, LayoutDashboard, Package, Search, Settings, TrendingUp, Users } from "lucide-react";
+import { LayoutDashboard, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Painel", icon: BarChart3 },
   { href: "/kanban", label: "Kanban", icon: LayoutDashboard },
   { href: "/pncp", label: "Compras públicas", icon: Search },
   { href: "/petronect", label: "Petronect", icon: Search },
-  { href: "/catalogo", label: "Catálogo", icon: Package },
-  { href: "/documentos-empresa", label: "Habilitação", icon: FolderOpen },
-  { href: "/atestados", label: "Atestados", icon: Award },
-  { href: "/declaracoes", label: "Declarações", icon: FileSignature },
-  { href: "/concorrentes", label: "Concorrentes", icon: Users },
-  { href: "/inteligencia", label: "Inteligência", icon: TrendingUp },
-  { href: "/relatorios", label: "Relatórios", icon: FileText },
-  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export function SidebarNav() {

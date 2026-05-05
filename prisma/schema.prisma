@@ -7,82 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// ==================== ENUMS FASE 2 ====================
-
-enum CategoriaParametro {
-  segmento
-  categoria_produto
-  linha_servico
-  palavra_chave_positiva
-  palavra_chave_negativa
-  regra_modalidade
-  regra_orgao
-  regra_uf
-  criterio_descarte
-  criterio_urgencia
-  gatilho_risco
-}
-
-enum TipoCriterio {
-  objetivo
-  subjetivo
-}
-
-enum TipoRegra {
-  inclusao
-  exclusao
-  condicional
-}
-
-enum OperadorRegra {
-  igual
-  diferente
-  contem
-  nao_contem
-  maior
-  menor
-  regex
-}
-
-enum AcaoAuditoria {
-  criacao
-  edicao
-  exclusao
-}
-
-// ==================== GESTÃO DOCUMENTAL (HABILITAÇÃO) ====================
-
-enum CategoriaHabilitacao {
-  juridica
-  fiscal
-  trabalhista
-  tecnica
-  economica
-  complementar
-}
-
-enum StatusDocumentoEmpresa {
-  vigente
-  vencendo
-  vencido
-  substituido
-}
-
-enum NivelAlerta {
-  verde
-  amarelo
-  laranja
-  vermelho
-  preto
-}
-
-enum AcaoAuditoriaDoc {
-  upload
-  substituicao
-  exclusao
-  alteracao_metadata
-  download
-}
+// ==================== ENUMS ====================
 
 enum TipoFonte {
   pncp
@@ -107,95 +32,7 @@ enum StatusItem {
   erro
 }
 
-// ==================== EMPRESA ====================
-
-model Empresa {
-  id          String   @id @default("default")
-  nome        String
-  descricao   String?  @db.Text
-  segmento    String?
-  /// Preferências da busca PNCP (datas, UFs, palavras-chave). Ver manuais em gov.br/pncp.
-  pncpPreferencias Json?  @map("pncp_preferencias")
-  /// Configurações da IA (provedor, chave, modelo).
-  iaConfig    Json?    @map("ia_config")
-  /// Configuração do motor de score (faixas, thresholds, recomendações).
-  configuracaoScore Json? @map("configuracao_score")
-  criadoEm    DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
-
-  produtos Produto[]
-
-  @@map("empresa")
-}
-
-// ==================== PARÂMETROS ESTRATÉGICOS (FASE 2) ====================
-
-model ParametroEstrategico {
-  id         String              @id @default(cuid())
-  categoria  CategoriaParametro
-  chave      String
-  valor      String
-  peso       Float?
-  descricao  String?             @db.Text
-  ativo      Boolean             @default(true)
-  ordem      Int                 @default(0)
-  criadoEm   DateTime            @default(now()) @map("criado_em")
-  atualizadoEm DateTime          @updatedAt @map("atualizado_em")
-
-  @@unique([categoria, chave])
-  @@map("parametros_estrategicos")
-}
-
-model CriterioScore {
-  id          String        @id @default(cuid())
-  nome        String        @unique
-  descricao   String        @db.Text
-  tipo        TipoCriterio
-  peso        Float
-  formulaRef  String?       @map("formula_ref")
-  faixaMin    Float?        @map("faixa_min")
-  faixaMax    Float?        @map("faixa_max")
-  ativo       Boolean       @default(true)
-  ordem       Int           @default(0)
-  criadoEm    DateTime      @default(now()) @map("criado_em")
-  atualizadoEm DateTime     @updatedAt @map("atualizado_em")
-
-  @@map("criterios_score")
-}
-
-model RegraAderencia {
-  id        String       @id @default(cuid())
-  nome      String
-  tipo      TipoRegra
-  campo     String
-  operador  OperadorRegra
-  valor     String
-  peso      Float?
-  ativo     Boolean      @default(true)
-  descricao String?      @db.Text
-  criadoEm  DateTime     @default(now()) @map("criado_em")
-  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
-
-  @@map("regras_aderencia")
-}
-
-model AuditoriaParametro {
-  id              String         @id @default(cuid())
-  tabela          String
-  registroId      String         @map("registro_id")
-  campo           String
-  valorAnterior   String?        @map("valor_anterior") @db.Text
-  valorNovo       String?        @map("valor_novo") @db.Text
-  acao            AcaoAuditoria
-  alteradoPorId   String         @map("alterado_por_id")
-  criadoEm        DateTime       @default(now()) @map("criado_em")
-
-  alteradoPor User @relation(fields: [alteradoPorId], references: [id])
-
-  @@map("auditoria_parametros")
-}
-
-// ==================== FONTES DE CAPTACAO (FASE 2 - SP-B) ====================
+// ==================== FONTES DE CAPTAÇÃO ====================
 
 model FonteCaptacao {
   id                  String         @id @default(cuid())
@@ -254,24 +91,6 @@ model ItemCaptado {
   @@map("itens_captados")
 }
 
-// ==================== CATÁLOGO ====================
-
-model Produto {
-  id          String   @id @default(cuid())
-  empresaId   String   @default("default") @map("empresa_id")
-  nome        String
-  descricao   String?  @db.Text
-  categoria   String?
-  palavrasChave String[] @map("palavras_chave")
-  ativo       Boolean  @default(true)
-  criadoEm    DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
-
-  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-
-  @@map("produtos")
-}
-
 // ==================== KANBAN ====================
 
 model KanbanColuna {
@@ -291,8 +110,6 @@ model KanbanColuna {
   @@map("kanban_colunas")
 }
 
-// ==================== LICITAÇÃO (SIMPLIFICADA) ====================
-
 model Licitacao {
   id              String    @id @default(cuid())
   numero          Int       @default(autoincrement()) @unique
@@ -311,25 +128,11 @@ model Licitacao {
   criadoEm        DateTime  @default(now()) @map("criado_em")
   atualizadoEm    DateTime  @updatedAt @map("atualizado_em")
   fonteId         String?   @map("fonte_id")
-  identificadorExterno String? @unique @map("identificador_externo")
-  aderenciaAutomatica  Json?   @map("aderencia_automatica")
-  scorePreliminar      Float?  @map("score_preliminar")
-  classificacaoPreliminar String? @map("classificacao_preliminar")
 
   card          KanbanCard?
   movimentacoes Movimentacao[]
-  acoesIa       AcaoIa[]
   fonte         FonteCaptacao? @relation(fields: [fonteId], references: [id])
   itensCaptados ItemCaptado[]
-  analise       LicitacaoAnalise?
-  analiseIa     LicitacaoAnaliseIa?
-  score         LicitacaoScore?
-  parecer       LicitacaoParecer?
-  notificacoes  Notificacao[]
-  documentos    Documento[]
-  resultado     ResultadoLicitacao?
-  checklistEdital  ChecklistEdital[]
-  decisaoGoNoGo    DecisaoGoNoGo?
 
   @@map("licitacoes")
 }
@@ -370,368 +173,6 @@ model Movimentacao {
   @@map("movimentacoes")
 }
 
-// ==================== ANALISE / SCORE / PARECER (FASE 2 - SP-C) ====================
-
-model LicitacaoAnalise {
-  id                        String    @id @default(cuid())
-  licitacaoId               String    @unique @map("licitacao_id")
-  aderenciaDiretaExiste     Boolean?  @map("aderencia_direta_existe")
-  aderenciaDiretaNivel      String?   @map("aderencia_direta_nivel")
-  aderenciaAplicacaoExiste  Boolean?  @map("aderencia_aplicacao_existe")
-  aderenciaAplicacaoNivel   String?   @map("aderencia_aplicacao_nivel")
-  contextoOcultoExiste      Boolean?  @map("contexto_oculto_existe")
-  contextoOcultoNivel       String?   @map("contexto_oculto_nivel")
-  oportunidadeOcultaExiste  Boolean?  @map("oportunidade_oculta_existe")
-  oportunidadeOcultaForca   String?   @map("oportunidade_oculta_forca")
-  oportunidadeOcultaResumo  String?   @map("oportunidade_oculta_resumo") @db.Text
-  oportunidadeNoObjeto      Boolean   @default(false) @map("oportunidade_no_objeto")
-  oportunidadeNoTr          Boolean   @default(false) @map("oportunidade_no_tr")
-  oportunidadeNosLotes      Boolean   @default(false) @map("oportunidade_nos_lotes")
-  oportunidadeNosItens      Boolean   @default(false) @map("oportunidade_nos_itens")
-  oportunidadeNaPlanilha    Boolean   @default(false) @map("oportunidade_na_planilha")
-  oportunidadeNoMemorial    Boolean   @default(false) @map("oportunidade_no_memorial")
-  oportunidadeEmAnexoTecnico Boolean  @default(false) @map("oportunidade_em_anexo_tecnico")
-  criadoEm                  DateTime  @default(now()) @map("criado_em")
-  atualizadoEm              DateTime  @updatedAt @map("atualizado_em")
-
-  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-
-  @@map("licitacoes_analise")
-}
-
-model LicitacaoAnaliseIa {
-  id            String    @id @default(cuid())
-  licitacaoId   String    @unique @map("licitacao_id")
-  status        String
-  resultadoJson Json?     @map("resultado_json")
-  modelo        String?
-  erro          String?   @db.Text
-  criadoEm      DateTime  @default(now()) @map("criado_em")
-  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
-
-  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-
-  @@map("licitacoes_analise_ia")
-}
-
-model LicitacaoScore {
-  id                          String    @id @default(cuid())
-  licitacaoId                 String    @unique @map("licitacao_id")
-  scoreFinal                  Float     @map("score_final")
-  classificacao               String
-  scoreAderenciaDireta        Float?    @map("score_aderencia_direta")
-  scoreAderenciaAplicacao     Float?    @map("score_aderencia_aplicacao")
-  scoreContextoOculto         Float?    @map("score_contexto_oculto")
-  scoreModeloComercial        Float?    @map("score_modelo_comercial")
-  scorePotencialEconomico     Float?    @map("score_potencial_economico")
-  scoreQualidadeEvidencia     Float?    @map("score_qualidade_evidencia")
-  scoreJustificativaResumida  String?   @map("score_justificativa_resumida") @db.Text
-  valorCapturavelEstimado     Decimal?  @map("valor_capturavel_estimado") @db.Decimal(15, 2)
-  valorCapturavelFaixaMin     Decimal?  @map("valor_capturavel_faixa_min") @db.Decimal(15, 2)
-  valorCapturavelFaixaMax     Decimal?  @map("valor_capturavel_faixa_max") @db.Decimal(15, 2)
-  valorCapturavelMoeda        String    @default("BRL") @map("valor_capturavel_moeda")
-  valorCapturavelNivelConfianca String? @map("valor_capturavel_nivel_confianca")
-  valorCapturavelMetodoEstimativa String? @map("valor_capturavel_metodo_estimativa")
-  valorCapturavelJustificativa String?  @map("valor_capturavel_justificativa") @db.Text
-  valorCapturavelBaseDocumental Json?   @map("valor_capturavel_base_documental")
-  valorCapturavelObservacao   String?   @map("valor_capturavel_observacao") @db.Text
-  falsoNegativoExisteRisco    Boolean   @default(false) @map("falso_negativo_existe_risco")
-  falsoNegativoNivelRisco     String?   @map("falso_negativo_nivel_risco")
-  falsoNegativoMotivos        Json?     @map("falso_negativo_motivos")
-  falsoNegativoTrechosCriticos Json?    @map("falso_negativo_trechos_criticos")
-  falsoNegativoResumo         String?   @map("falso_negativo_resumo") @db.Text
-  criadoEm                    DateTime  @default(now()) @map("criado_em")
-  atualizadoEm                DateTime  @updatedAt @map("atualizado_em")
-
-  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-
-  @@map("licitacoes_score")
-}
-
-model LicitacaoParecer {
-  id                          String    @id @default(cuid())
-  licitacaoId                 String    @unique @map("licitacao_id")
-  classificacaoFinal          String?   @map("classificacao_final")
-  prioridadeComercial         String?   @map("prioridade_comercial")
-  valeEsforcoComercial        Boolean?  @map("vale_esforco_comercial")
-  recomendacaoFinal           String?   @map("recomendacao_final") @db.Text
-  resumo                      String?   @db.Text
-  oportunidadeDireta          Boolean   @default(false) @map("oportunidade_direta")
-  oportunidadeIndireta        Boolean   @default(false) @map("oportunidade_indireta")
-  oportunidadeOcultaItemLoteAnexo Boolean @default(false) @map("oportunidade_oculta_item_lote_anexo")
-  oportunidadeInexistente     Boolean   @default(false) @map("oportunidade_inexistente")
-  riscoFalsoPositivo          Boolean   @default(false) @map("risco_falso_positivo")
-  riscoFalsoNegativoSoTitulo  Boolean   @default(false) @map("risco_falso_negativo_so_titulo")
-  ondeEstaOportunidade        Json?     @map("onde_esta_oportunidade")
-  solucoesQueMultiteinerPoderiaOfertar Json? @map("solucoes_que_multiteiner_poderia_ofertar")
-  proximoPasosRecomendado     Json?     @map("proximo_pasos_recomendado")
-  riscosLimitacoes            Json?     @map("riscos_limitacoes")
-  evidenciasPrincipais        Json?     @map("evidencias_principais")
-  criadoEm                    DateTime  @default(now()) @map("criado_em")
-  atualizadoEm                DateTime  @updatedAt @map("atualizado_em")
-
-  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-
-  @@map("licitacoes_parecer")
-}
-
-// ==================== ANÁLISE COMPETITIVA (MÓDULO B) ====================
-
-model Concorrente {
-  id            String   @id @default(cuid())
-  nome          String
-  cnpj          String?  @unique @db.VarChar(18)
-  segmentos     String[]
-  porte         String?
-  uf            String?
-  observacoes   String?  @db.Text
-  ativo         Boolean  @default(true)
-  criadoEm      DateTime @default(now()) @map("criado_em")
-  atualizadoEm  DateTime @updatedAt @map("atualizado_em")
-
-  resultados    ResultadoLicitacao[]
-
-  @@map("concorrentes")
-}
-
-model ResultadoLicitacao {
-  id                    String    @id @default(cuid())
-  licitacaoId           String    @unique @map("licitacao_id")
-  resultado             String
-  empresaVencedoraId    String?   @map("empresa_vencedora_id")
-  nomeVencedorExterno   String?   @map("nome_vencedor_externo")
-  valorVencedor         Decimal?  @map("valor_vencedor") @db.Decimal(15, 2)
-  valorNossaProposta    Decimal?  @map("valor_nossa_proposta") @db.Decimal(15, 2)
-  diferencaPercentual   Float?    @map("diferenca_percentual")
-  criterioJulgamento    String?   @map("criterio_julgamento")
-  motivoDerrota         String?   @map("motivo_derrota")
-  motivoDetalhado       String?   @map("motivo_detalhado") @db.Text
-  licoesAprendidas      String?   @map("licoes_aprendidas") @db.Text
-  registradoPorId       String?   @map("registrado_por_id")
-  criadoEm              DateTime  @default(now()) @map("criado_em")
-  atualizadoEm          DateTime  @updatedAt @map("atualizado_em")
-
-  licitacao        Licitacao     @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-  empresaVencedora Concorrente?  @relation(fields: [empresaVencedoraId], references: [id])
-  registradoPor    User?         @relation("resultadoRegistradoPor", fields: [registradoPorId], references: [id])
-  itensResultado   ItemResultado[]
-
-  @@map("resultados_licitacao")
-}
-
-model ItemResultado {
-  id                      String   @id @default(cuid())
-  resultadoId             String   @map("resultado_id")
-  descricao               String
-  categoria               String?
-  quantidade              Float?
-  unidade                 String?
-  valorUnitarioNosso      Decimal? @map("valor_unitario_nosso") @db.Decimal(15, 2)
-  valorUnitarioVencedor   Decimal? @map("valor_unitario_vencedor") @db.Decimal(15, 2)
-  criadoEm                DateTime @default(now()) @map("criado_em")
-
-  resultado ResultadoLicitacao @relation(fields: [resultadoId], references: [id], onDelete: Cascade)
-
-  @@map("itens_resultado")
-}
-
-// ==================== CHECKLIST POR EDITAL + GO/NO-GO (MÓDULO A) ====================
-
-model ChecklistEdital {
-  id                  String   @id @default(cuid())
-  licitacaoId         String   @map("licitacao_id")
-  nome                String
-  categoria           CategoriaHabilitacao
-  obrigatorio         Boolean  @default(true)
-  status              String   @default("pendente") // pendente, atendido, nao_atendido, parcial
-  documentoEmpresaId  String?  @map("documento_empresa_id")
-  observacoes         String?  @db.Text
-  ordem               Int      @default(0)
-  criadoEm            DateTime @default(now()) @map("criado_em")
-  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
-
-  licitacao        Licitacao         @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-  documentoEmpresa DocumentoEmpresa? @relation(fields: [documentoEmpresaId], references: [id])
-
-  @@map("checklist_edital")
-}
-
-model DecisaoGoNoGo {
-  id                        String   @id @default(cuid())
-  licitacaoId               String   @unique @map("licitacao_id")
-  decisao                   String   // go, no_go, condicional
-  scoreNoMomento            Float?   @map("score_no_momento")
-  checklistPronto           Boolean  @default(false) @map("checklist_pronto")
-  valorEstimadoCapturavel   Decimal? @map("valor_estimado_capturavel") @db.Decimal(15, 2)
-  riscosIdentificados       Json?    @map("riscos_identificados")
-  justificativa             String?  @db.Text
-  decididoPorId             String?  @map("decidido_por_id")
-  criadoEm                  DateTime @default(now()) @map("criado_em")
-
-  licitacao   Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-  decididoPor User?     @relation("decisaoGoNoGo", fields: [decididoPorId], references: [id])
-
-  @@map("decisoes_go_nogo")
-}
-
-// ==================== NOTIFICAÇÕES ====================
-
-model Notificacao {
-  id          String    @id @default(cuid())
-  tipo        String    // nova_licitacao, score_alto, prazo_vencendo, captacao_concluida
-  titulo      String
-  mensagem    String    @db.Text
-  lida        Boolean   @default(false)
-  licitacaoId String?   @map("licitacao_id")
-  criadoEm    DateTime  @default(now()) @map("criado_em")
-
-  licitacao Licitacao? @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-
-  @@map("notificacoes")
-}
-
-// ==================== DOCUMENTOS ====================
-
-model Documento {
-  id            String   @id @default(cuid())
-  licitacaoId   String   @map("licitacao_id")
-  nome          String
-  nomeOriginal  String   @map("nome_original")
-  tipo          String   // edital, tr, proposta, ata, contrato, outro
-  tamanho       Int
-  mimeType      String   @map("mime_type")
-  caminho       String   // path no servidor
-  criadoEm      DateTime @default(now()) @map("criado_em")
-  enviadoPorId  String?  @map("enviado_por_id")
-
-  licitacao  Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-  enviadoPor User?     @relation(fields: [enviadoPorId], references: [id])
-
-  @@map("documentos")
-}
-
-// ==================== IA ====================
-
-model AcaoIa {
-  id           String   @id @default(cuid())
-  licitacaoId  String?  @map("licitacao_id")
-  tipo         String
-  prompt       String?  @db.Text
-  resposta     String?  @db.Text
-  respostaJson Json?    @map("resposta_json")
-  modelo       String?
-  status       String   @default("processando")
-  erro         String?
-  criadoEm     DateTime @default(now()) @map("criado_em")
-
-  licitacao Licitacao? @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
-
-  @@map("acoes_ia")
-}
-
-// ==================== GESTÃO DOCUMENTAL — MODELS ====================
-
-model DocumentoEmpresa {
-  id                String                  @id @default(cuid())
-  cnpj              String                  @db.VarChar(18)
-  categoria         CategoriaHabilitacao
-  tipoDocumento     String                  @map("tipo_documento") @db.VarChar(100)
-  nome              String
-  nomeOriginal      String                  @map("nome_original")
-  tamanho           Int
-  mimeType          String                  @map("mime_type")
-  caminho           String
-  versao            Int                     @default(1)
-  versaoAnteriorId  String?                 @map("versao_anterior_id")
-  dataEmissao       DateTime?               @map("data_emissao")
-  dataValidade      DateTime?               @map("data_validade")
-  orgaoEmissor      String?                 @map("orgao_emissor") @db.VarChar(200)
-  observacoes       String?                 @db.Text
-  status            StatusDocumentoEmpresa  @default(vigente)
-  nivelAlerta       NivelAlerta?            @map("nivel_alerta")
-  enviadoPorId      String                  @map("enviado_por_id")
-  criadoEm          DateTime                @default(now()) @map("criado_em")
-  atualizadoEm      DateTime                @updatedAt @map("atualizado_em")
-
-  enviadoPor         User               @relation("docEmpresaEnviadoPor", fields: [enviadoPorId], references: [id])
-  versaoAnterior     DocumentoEmpresa?  @relation("versoes", fields: [versaoAnteriorId], references: [id])
-  versoesPosteriores DocumentoEmpresa[] @relation("versoes")
-  auditorias         AuditoriaDocumento[]
-  checklistEdital    ChecklistEdital[]
-  atestados          AtestadoTecnico[]
-
-  @@index([cnpj, categoria])
-  @@index([dataValidade])
-  @@index([status])
-  @@map("documentos_empresa")
-}
-
-model ConfiguracaoAlertaDoc {
-  id              String   @id @default(cuid())
-  tipoDocumento   String   @unique @map("tipo_documento") @db.VarChar(100)
-  diasVerde       Int      @default(90) @map("dias_verde")
-  diasAmarelo     Int      @default(60) @map("dias_amarelo")
-  diasLaranja     Int      @default(30) @map("dias_laranja")
-  diasVermelho    Int      @default(15) @map("dias_vermelho")
-  diasPreto       Int      @default(0)  @map("dias_preto")
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
-
-  @@map("configuracoes_alerta_doc")
-}
-
-model AuditoriaDocumento {
-  id              String            @id @default(cuid())
-  documentoId     String            @map("documento_id")
-  acao            AcaoAuditoriaDoc
-  detalhes        String?           @db.Text
-  realizadoPorId  String            @map("realizado_por_id")
-  criadoEm        DateTime          @default(now()) @map("criado_em")
-
-  documento    DocumentoEmpresa @relation(fields: [documentoId], references: [id], onDelete: Cascade)
-  realizadoPor User             @relation("auditDocRealizadoPor", fields: [realizadoPorId], references: [id])
-
-  @@index([documentoId])
-  @@map("auditoria_documentos")
-}
-
-// ==================== ATESTADOS TÉCNICOS + DECLARAÇÕES (MÓDULO A) ====================
-
-model AtestadoTecnico {
-  id                  String   @id @default(cuid())
-  documentoEmpresaId  String   @map("documento_empresa_id")
-  clienteNome         String   @map("cliente_nome")
-  clienteCnpj         String?  @map("cliente_cnpj") @db.VarChar(18)
-  descricaoServico    String   @map("descricao_servico") @db.Text
-  tags                String[]
-  valorContrato       Decimal? @map("valor_contrato") @db.Decimal(15, 2)
-  dataInicio          DateTime? @map("data_inicio")
-  dataFim             DateTime? @map("data_fim")
-  possuiCat           Boolean  @default(false) @map("possui_cat")
-  numeroCat           String?  @map("numero_cat")
-  observacoes         String?  @db.Text
-  criadoEm            DateTime @default(now()) @map("criado_em")
-  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
-
-  documentoEmpresa DocumentoEmpresa @relation(fields: [documentoEmpresaId], references: [id], onDelete: Cascade)
-
-  @@map("atestados_tecnicos")
-}
-
-model TemplateDeclaracao {
-  id              String   @id @default(cuid())
-  nome            String
-  descricao       String?  @db.Text
-  categoria       String
-  conteudoHtml    String   @map("conteudo_html") @db.Text
-  variaveis       Json     @default("[]")
-  ativo           Boolean  @default(true)
-  criadoEm        DateTime @default(now()) @map("criado_em")
-  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
-
-  @@map("templates_declaracao")
-}
-
 // ─── Autenticação (NextAuth v5) ───────────────────────────────────────────────
 // IMPORTANTE: Os nomes de modelo em inglês são exigidos pelo @auth/prisma-adapter.
 // As tabelas no banco são mapeadas para português via @@map.
@@ -748,20 +189,13 @@ model User {
   criadoEm      DateTime  @default(now()) @map("criado_em")
   atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
 
-  accounts              Account[]
-  sessions              Session[]
-  kanbanCards            KanbanCard[]
-  auditorias             AuditoriaParametro[]
-  documentos             Documento[]
-  documentosEmpresa      DocumentoEmpresa[]      @relation("docEmpresaEnviadoPor")
-  auditoriasDocumento    AuditoriaDocumento[]    @relation("auditDocRealizadoPor")
-  resultadosRegistrados  ResultadoLicitacao[] @relation("resultadoRegistradoPor")
-  decisoesGoNoGo         DecisaoGoNoGo[]       @relation("decisaoGoNoGo")
+  accounts    Account[]
+  sessions    Session[]
+  kanbanCards KanbanCard[]
 
   @@map("usuarios")
 }
 
-// Usado apenas com OAuth (C2-B). Com Credentials provider, não é populado.
 model Account {
   id                String  @id @default(uuid())
   userId            String  @map("user_id")
@@ -782,7 +216,6 @@ model Account {
   @@map("contas_auth")
 }
 
-// Não utilizado com strategy: 'jwt'. Existe para satisfazer a interface do adapter.
 model Session {
   id           String   @id @default(uuid())
   sessionToken String   @unique @map("session_token")
@@ -794,7 +227,6 @@ model Session {
   @@map("sessoes_auth")
 }
 
-// Não utilizado com strategy: 'jwt'. Existe para satisfazer a interface do adapter.
 model VerificationToken {
   identifier String
   token      String   @unique

@@ -15,7 +15,6 @@ export async function GET(req: Request) {
         },
       },
       fonte: { select: { id: true, nome: true, tipo: true } },
-      score: { select: { scoreFinal: true, classificacao: true } },
     },
     orderBy: { criadoEm: "desc" },
   });
