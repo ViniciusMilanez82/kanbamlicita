@@ -10,7 +10,7 @@ module.exports = {
       name: 'kanbamlicita',
       cwd: root,
       script: path.join(root, 'node_modules/.bin/next'),
-      args: 'start',
+      args: 'start -H 127.0.0.1 -p 3000',
       instances: 1,
       autorestart: true,
       watch: false,
@@ -18,6 +18,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
+        HOSTNAME: '127.0.0.1',
       },
     },
   ],
