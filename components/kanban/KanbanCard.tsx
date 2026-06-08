@@ -42,6 +42,7 @@ interface KanbanCardProps {
 const FONTE_CONFIG: Record<string, { label: string; cor: string }> = {
   pncp: { label: "PNCP", cor: "bg-blue-100 text-blue-700 ring-blue-200" },
   petronect: { label: "Petronect", cor: "bg-emerald-100 text-emerald-700 ring-emerald-200" },
+  conlicitacao: { label: "ConLicitação", cor: "bg-indigo-100 text-indigo-700 ring-indigo-200" },
 };
 
 function FonteBadge({ fonte }: { fonte: { tipo: string; nome: string } | null }) {
