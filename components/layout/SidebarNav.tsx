@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Search, Settings } from "lucide-react";
+import { ArrowUp, LayoutDashboard, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/kanban", label: "Kanban", icon: LayoutDashboard },
   { href: "/pncp", label: "Compras públicas", icon: Search },
   { href: "/petronect", label: "Petronect", icon: Search },
+  { href: "/conlicitacao", label: "Boletim ConLicitação", icon: ArrowUp },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 

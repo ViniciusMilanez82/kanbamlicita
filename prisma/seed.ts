@@ -61,6 +61,20 @@ async function main() {
     },
   });
 
+  // ==================== FONTE CONLICITAÇÃO (BOLETIM) ====================
+  await prisma.fonteCaptacao.upsert({
+    where: { id: "fonte-conlicitacao-default" },
+    update: {},
+    create: {
+      id: "fonte-conlicitacao-default",
+      nome: "Boletim ConLicitação",
+      tipo: "conlicitacao",
+      ativo: true,
+      filtros: {},
+      parametros: {},
+    },
+  });
+
   // ==================== FONTE PETRONECT ====================
   const petronectUser = process.env.PETRONECT_USERNAME;
   const petronectPass = process.env.PETRONECT_PASSWORD;

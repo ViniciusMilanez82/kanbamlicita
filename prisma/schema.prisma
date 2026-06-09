@@ -12,6 +12,7 @@ datasource db {
 enum TipoFonte {
   pncp
   petronect
+  conlicitacao
   rss
   scraping
   api_generica
