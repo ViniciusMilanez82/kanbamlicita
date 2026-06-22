@@ -31,7 +31,7 @@ export function FilterBar({ filtros, onChange, ufs, modalidades }: FilterBarProp
       <div className="relative flex-1 min-w-[200px] max-w-md">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="Buscar por título, órgão ou objeto..."
+          placeholder="Buscar por cidade, edital, boletim, órgão, objeto..."
           value={filtros.busca}
           onChange={(e) => onChange({ ...filtros, busca: e.target.value })}
           className="pl-8"

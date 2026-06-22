@@ -15,6 +15,18 @@ export async function GET(req: Request) {
         },
       },
       fonte: { select: { id: true, nome: true, tipo: true } },
+      boletimDados: {
+        select: {
+          boletim: true,
+          numeroConlicitacao: true,
+          codigo: true,
+          edital: true,
+          cidade: true,
+          estado: true,
+          processo: true,
+          situacao: true,
+        },
+      },
     },
     orderBy: { criadoEm: "desc" },
   });
