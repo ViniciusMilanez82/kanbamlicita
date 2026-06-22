@@ -7,6 +7,8 @@ export interface Filtros {
   busca: string;
   uf: string;
   modalidade: string;
+  boletim: string;
+  situacao: string;
   urgente: "todos" | "sim" | "nao";
 }
 
@@ -15,14 +17,35 @@ interface FilterBarProps {
   onChange: (f: Filtros) => void;
   ufs: string[];
   modalidades: string[];
+  boletins: string[];
+  situacoes: string[];
 }
 
-export function FilterBar({ filtros, onChange, ufs, modalidades }: FilterBarProps) {
+export function FilterBar({
+  filtros,
+  onChange,
+  ufs,
+  modalidades,
+  boletins,
+  situacoes,
+}: FilterBarProps) {
   const temFiltroAtivo =
-    filtros.busca || filtros.uf || filtros.modalidade || filtros.urgente !== "todos";
+    filtros.busca ||
+    filtros.uf ||
+    filtros.modalidade ||
+    filtros.boletim ||
+    filtros.situacao ||
+    filtros.urgente !== "todos";
 
   function limpar() {
-    onChange({ busca: "", uf: "", modalidade: "", urgente: "todos" });
+    onChange({
+      busca: "",
+      uf: "",
+      modalidade: "",
+      boletim: "",
+      situacao: "",
+      urgente: "todos",
+    });
   }
 
   return (
@@ -60,6 +83,34 @@ export function FilterBar({ filtros, onChange, ufs, modalidades }: FilterBarProp
           <option value="">Todas as modalidades</option>
           {modalidades.map((m) => (
             <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      )}
+
+      {/* Boletim */}
+      {boletins.length > 0 && (
+        <select
+          className="rounded-md border bg-white px-2.5 py-2 text-sm text-slate-600"
+          value={filtros.boletim}
+          onChange={(e) => onChange({ ...filtros, boletim: e.target.value })}
+        >
+          <option value="">Todos os boletins</option>
+          {boletins.map((b) => (
+            <option key={b} value={b}>Boletim {b}</option>
+          ))}
+        </select>
+      )}
+
+      {/* Situação */}
+      {situacoes.length > 0 && (
+        <select
+          className="rounded-md border bg-white px-2.5 py-2 text-sm text-slate-600"
+          value={filtros.situacao}
+          onChange={(e) => onChange({ ...filtros, situacao: e.target.value })}
+        >
+          <option value="">Todas as situações</option>
+          {situacoes.map((s) => (
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
       )}

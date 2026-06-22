@@ -88,12 +88,22 @@ function resolveDestinoColuna(
   return null;
 }
 
+/** Quebra "1, 19" nas edições individuais ["1", "19"]. */
+function editionsDe(boletim?: string | null): string[] {
+  return (boletim ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 export function KanbanBoard() {
   const queryClient = useQueryClient();
   const [filtros, setFiltros] = useState<Filtros>({
     busca: "",
     uf: "",
     modalidade: "",
+    boletim: "",
+    situacao: "",
     urgente: "todos",
   });
   const [drawerLicitacaoId, setDrawerLicitacaoId] = useState<string | null>(null);
@@ -154,20 +164,28 @@ export function KanbanBoard() {
     },
   });
 
-  // Extrai UFs e modalidades distintas para os filtros
-  const { ufsDisponiveis, modalidadesDisponiveis } = useMemo(() => {
-    const lic = Array.isArray(licitacoes) ? licitacoes : [];
-    const ufSet = new Set<string>();
-    const modSet = new Set<string>();
-    for (const l of lic) {
-      if (l.uf) ufSet.add(l.uf);
-      if (l.modalidade) modSet.add(l.modalidade);
-    }
-    return {
-      ufsDisponiveis: [...ufSet].sort(),
-      modalidadesDisponiveis: [...modSet].sort(),
-    };
-  }, [licitacoes]);
+  // Extrai UFs, modalidades, boletins e situações distintos para os filtros
+  const { ufsDisponiveis, modalidadesDisponiveis, boletinsDisponiveis, situacoesDisponiveis } =
+    useMemo(() => {
+      const lic = Array.isArray(licitacoes) ? licitacoes : [];
+      const ufSet = new Set<string>();
+      const modSet = new Set<string>();
+      const boletimSet = new Set<string>();
+      const situacaoSet = new Set<string>();
+      for (const l of lic) {
+        if (l.uf) ufSet.add(l.uf);
+        if (l.modalidade) modSet.add(l.modalidade);
+        for (const ed of editionsDe(l.boletimDados?.boletim)) boletimSet.add(ed);
+        const sit = l.boletimDados?.situacao?.trim();
+        if (sit) situacaoSet.add(sit);
+      }
+      return {
+        ufsDisponiveis: [...ufSet].sort(),
+        modalidadesDisponiveis: [...modSet].sort(),
+        boletinsDisponiveis: [...boletimSet].sort((a, b) => Number(a) - Number(b)),
+        situacoesDisponiveis: [...situacaoSet].sort(),
+      };
+    }, [licitacoes]);
 
   const colunasComCards = useMemo(() => {
     const cols = Array.isArray(colunas) ? colunas : [];
@@ -199,6 +217,16 @@ export function KanbanBoard() {
 
           // Filtro modalidade
           if (filtros.modalidade && l.modalidade !== filtros.modalidade) return false;
+
+          // Filtro boletim (edição de origem)
+          if (
+            filtros.boletim &&
+            !editionsDe(l.boletimDados?.boletim).includes(filtros.boletim)
+          )
+            return false;
+
+          // Filtro situação
+          if (filtros.situacao && l.boletimDados?.situacao !== filtros.situacao) return false;
 
           // Filtro urgente
           if (filtros.urgente === "sim" && !l.card?.urgente) return false;
@@ -344,6 +372,8 @@ export function KanbanBoard() {
           onChange={setFiltros}
           ufs={ufsDisponiveis}
           modalidades={modalidadesDisponiveis}
+          boletins={boletinsDisponiveis}
+          situacoes={situacoesDisponiveis}
         />
         <Button
           size="sm"
