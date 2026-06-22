@@ -48,7 +48,18 @@ interface LicitacaoListaItem {
   classificacaoPreliminar: string | null;
   fonte: { tipo: string; nome: string } | null;
   score: unknown;
-  boletimDados?: { boletim: string | null } | null;
+  numeroCompra: string | null;
+  processo: string | null;
+  boletimDados?: {
+    boletim: string | null;
+    numeroConlicitacao: string | null;
+    codigo: string | null;
+    edital: string | null;
+    cidade: string | null;
+    estado: string | null;
+    processo: string | null;
+    situacao: string | null;
+  } | null;
   card: {
     id: string;
     colunaId: string;
@@ -168,12 +179,20 @@ export function KanbanBoard() {
       cards: (lic as unknown as LicitacaoListaItem[])
         .filter((l) => l.card?.colunaId === col.id)
         .filter((l) => {
-          // Busca por texto
-          if (filtros.busca &&
-            !l.titulo.toLowerCase().includes(buscaLower) &&
-            !l.orgao?.toLowerCase().includes(buscaLower) &&
-            !l.objeto?.toLowerCase().includes(buscaLower)
-          ) return false;
+          // Busca por texto — cobre dados da licitação e os campos do boletim
+          if (filtros.busca) {
+            const b = l.boletimDados;
+            const textoBusca = [
+              l.titulo, l.orgao, l.objeto, l.municipio, l.uf,
+              l.numeroCompra, l.processo,
+              b?.boletim, b?.numeroConlicitacao, b?.codigo, b?.edital,
+              b?.cidade, b?.estado, b?.processo, b?.situacao,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            if (!textoBusca.includes(buscaLower)) return false;
+          }
 
           // Filtro UF
           if (filtros.uf && l.uf !== filtros.uf) return false;
