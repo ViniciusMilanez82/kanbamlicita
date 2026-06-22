@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
+import { MapPin } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 export interface CardData {
@@ -14,10 +15,12 @@ export interface CardData {
     titulo: string;
     orgao: string | null;
     uf: string | null;
+    municipio: string | null;
     valorEstimado: number | null;
     dataSessao: string | null;
     dataPublicacao: string | null;
     modalidade: string | null;
+    boletim: string | null;
     scorePreliminar: number | null;
     classificacaoPreliminar: string | null;
     fonte: { tipo: string; nome: string } | null;
@@ -244,6 +247,13 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
         </p>
       )}
 
+      {(card.licitacao.municipio || card.licitacao.uf) && (
+        <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-slate-600">
+          <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+          {[card.licitacao.municipio, card.licitacao.uf].filter(Boolean).join(" - ")}
+        </p>
+      )}
+
       <div className="mt-2 flex flex-wrap gap-1.5">
         {card.licitacao.uf && (
           <Badge variant="outline" className="text-[10px]">
@@ -253,6 +263,15 @@ export function KanbanCard({ card, onClick }: KanbanCardProps) {
         {card.licitacao.modalidade && (
           <Badge variant="outline" className="text-[10px]">
             {card.licitacao.modalidade}
+          </Badge>
+        )}
+        {card.licitacao.boletim && (
+          <Badge
+            variant="outline"
+            className="text-[10px] border-indigo-200 text-indigo-700"
+            title={`Veio do(s) boletim(ns) da ConLicitação nº ${card.licitacao.boletim}`}
+          >
+            Boletim {card.licitacao.boletim}
           </Badge>
         )}
       </div>

@@ -15,6 +15,7 @@ export async function GET(req: Request) {
         },
       },
       fonte: { select: { id: true, nome: true, tipo: true } },
+      boletimDados: { select: { boletim: true } },
     },
     orderBy: { criadoEm: "desc" },
   });

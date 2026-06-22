@@ -167,8 +167,43 @@ model Licitacao {
   itensCaptados ItemCaptado[]
   ficha         LicitacaoFicha?
   itens         LicitacaoItem[]
+  boletimDados  BoletimDados?
 
   @@map("licitacoes")
+}
+
+/// Dados brutos da planilha do boletim ConLicitação, um campo distinto por
+/// coluna da planilha — preserva tudo para busca posterior. 1:1 com Licitacao.
+model BoletimDados {
+  id                 String   @id @default(cuid())
+  licitacaoId        String   @unique @map("licitacao_id")
+  numeroConlicitacao String?  @map("numero_conlicitacao")
+  codigo             String?
+  orgao              String?
+  endereco           String?  @db.Text
+  cidade             String?
+  estado             String?
+  cep                String?
+  edital             String?
+  site1              String?  @db.Text
+  site2              String?  @db.Text
+  processo           String?
+  valorEstimado      String?  @map("valor_estimado")
+  itens              String?  @db.Text
+  situacao           String?
+  documento          String?
+  abertura           String?
+  prazo              String?
+  objeto             String?  @db.Text
+  observacao         String?  @db.Text
+  anexos             String?  @db.Text
+  atualizadaEm       String?  @map("atualizada_em")
+  boletim            String?
+  criadoEm           DateTime @default(now()) @map("criado_em")
+
+  licitacao Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+
+  @@map("boletim_dados")
 }
 
 // ==================== FICHA + ITENS ====================

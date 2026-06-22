@@ -38,6 +38,7 @@ interface LicitacaoListaItem {
   titulo: string;
   orgao: string | null;
   uf: string | null;
+  municipio: string | null;
   objeto: string | null;
   valorEstimado: number | string | null;
   dataSessao: string | null;
@@ -47,6 +48,7 @@ interface LicitacaoListaItem {
   classificacaoPreliminar: string | null;
   fonte: { tipo: string; nome: string } | null;
   score: unknown;
+  boletimDados?: { boletim: string | null } | null;
   card: {
     id: string;
     colunaId: string;
@@ -205,10 +207,12 @@ export function KanbanBoard() {
               titulo: l.titulo,
               orgao: l.orgao,
               uf: l.uf,
+              municipio: l.municipio,
               valorEstimado: l.valorEstimado,
               dataSessao: l.dataSessao,
               dataPublicacao: l.dataPublicacao,
               modalidade: l.modalidade,
+              boletim: l.boletimDados?.boletim ?? null,
               scorePreliminar: l.scorePreliminar ?? null,
               classificacaoPreliminar: l.classificacaoPreliminar ?? null,
               fonte: l.fonte ? { tipo: l.fonte.tipo, nome: l.fonte.nome } : null,
